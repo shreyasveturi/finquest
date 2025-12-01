@@ -91,6 +91,66 @@ export type KeyTerm = {
 export const KEY_TERMS: KeyTerm[] = [
   {
     id: 't1',
+    term: 'Budget',
+    friendlyDefinition: 'A government plan outlining how much money it will collect (taxes) and spend over the year.',
+    whyItMatters: 'Budgets shape public services, economic growth, and determine who pays what taxes.',
+  },
+  {
+    id: 't2',
+    term: 'Chancellor',
+    friendlyDefinition: 'The UK government minister responsible for managing the country\'s finances and setting economic policy.',
+    whyItMatters: 'The Chancellor decides tax rates, spending priorities, and economic strategy.',
+  },
+  {
+    id: 't3',
+    term: 'Rachel Reeves',
+    friendlyDefinition: 'The current UK Chancellor of the Exchequer, the person in charge of the country\'s budget.',
+    whyItMatters: 'As Chancellor, Reeves decides tax and spending policies that affect all UK citizens.',
+  },
+  {
+    id: 't4',
+    term: 'taxes',
+    friendlyDefinition: 'Money that people and businesses must pay to the government to fund public services.',
+    whyItMatters: 'Taxes fund schools, hospitals, roads, and defense. Higher taxes mean more revenue but less money for households.',
+  },
+  {
+    id: 't5',
+    term: 'welfare spending',
+    friendlyDefinition: 'Government money spent on benefits and support for people who need help, like unemployment benefits or child support.',
+    whyItMatters: 'Affects poverty levels, social safety nets, and government budget balances.',
+  },
+  {
+    id: 't6',
+    term: 'GDP',
+    friendlyDefinition: 'Gross Domestic Product — the total value of all goods and services produced in a country.',
+    whyItMatters: 'GDP measures economic size and growth. A larger GDP usually means more tax revenue.',
+  },
+  {
+    id: 't7',
+    term: 'tax thresholds',
+    friendlyDefinition: 'Income levels at which different tax rates start to apply.',
+    whyItMatters: 'Freezing thresholds means more people pay higher tax rates as wages rise with inflation.',
+  },
+  {
+    id: 't8',
+    term: 'pension',
+    friendlyDefinition: 'A regular payment made during retirement to people who have saved or contributed during their working years.',
+    whyItMatters: 'Pensions affect retirement security and are often supported by tax incentives.',
+  },
+  {
+    id: 't9',
+    term: 'salary sacrifice',
+    friendlyDefinition: 'An arrangement where employees give up part of their salary in exchange for non-cash benefits, often reducing tax.',
+    whyItMatters: 'Used to boost pension contributions or benefits while lowering tax bills.',
+  },
+  {
+    id: 't10',
+    term: 'landlords',
+    friendlyDefinition: 'People who own property and rent it out to tenants.',
+    whyItMatters: 'Tax changes on landlords affect rental markets and property investment.',
+  },
+  {
+    id: 't11',
     term: 'fiscal headroom',
     friendlyDefinition: 'The space in a government budget to absorb shocks or increase spending without jeopardising finances.',
     whyItMatters: 'Shows how much flexibility the government has — important for markets and policy choices.',
@@ -132,10 +192,22 @@ export const KEY_TERMS: KeyTerm[] = [
     whyItMatters: 'Moves in gilt yields change debt servicing costs and signal market confidence.',
   },
   {
-    id: 't8',
+    id: 't18',
     term: 'productivity forecasts',
     friendlyDefinition: 'Predictions for how output per worker will grow over time.',
     whyItMatters: 'Lower productivity forecasts reduce growth and tax revenue expectations, influencing fiscal choices.',
+  },
+  {
+    id: 't19',
+    term: 'inflation',
+    friendlyDefinition: 'The rate at which prices for goods and services rise over time, reducing purchasing power.',
+    whyItMatters: 'High inflation erodes savings and real wages, affecting living standards and economic policy.',
+  },
+  {
+    id: 't20',
+    term: 'bond markets',
+    friendlyDefinition: 'Markets where governments and companies borrow money by selling bonds to investors.',
+    whyItMatters: 'Bond market reactions signal investor confidence and affect government borrowing costs.',
   },
 ];
 
