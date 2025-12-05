@@ -2,6 +2,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ArticleViewer from '../../components/ArticleViewer';
 import Modal from '../../components/Modal';
+import PredictionCard from '../../components/PredictionCard';
+import ReflectionCard from '../../components/ReflectionCard';
+import InteractiveArticleWrapper from '../../components/InteractiveArticleWrapper';
+import InterviewExplainModal from '../../components/InterviewExplainModal';
 import {
   ARTICLE_PARAGRAPHS,
   KEY_TERMS,
@@ -11,7 +15,6 @@ import {
   ARTICLE_URL,
   GOOGLE_FORM,
 } from '../../content/rachelReevesBudget';
-import Link from 'next/link';
 import NavBar from '../../components/NavBar';
 
 
@@ -30,6 +33,8 @@ export default function LessonPage() {
   const [answer, setAnswer] = useState('');
   const [submittedFor, setSubmittedFor] = useState<string | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [explainSelection, setExplainSelection] = useState('');
+  const [showExplainModal, setShowExplainModal] = useState(false);
 
   useEffect(() => {
     try {
@@ -102,42 +107,88 @@ export default function LessonPage() {
   return (
     <>
       <NavBar />
-      <div className="w-full bg-slate-50 min-h-screen">
-        {/* XP Bar at top */}
-        <div className="w-full bg-white border-b border-slate-200 sticky top-16 z-40">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-semibold text-slate-700">{level.name}</div>
-              <div className="text-sm font-bold text-slate-900">{xp} / 100 XP</div>
+      <div className="w-full bg-white min-h-screen">
+        {/* Sticky XP Bar */}
+        <div className="w-full bg-white border-b border-gray-200 sticky top-16 z-30 backdrop-blur-sm bg-white/95">
+          <div className="max-w-3xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-medium text-gray-700">{level.name}</div>
+              <div className="text-sm font-semibold text-gray-900">{xp} / 100 XP</div>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-              <div className={`h-2.5 rounded-full bg-gradient-to-r ${level.color} transition-all duration-300`} style={{ width: `${Math.min(100, xp)}%` }} />
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-2 rounded-full bg-gradient-to-r ${level.color} transition-all duration-300`}
+                style={{ width: `${Math.min(100, xp)}%` }}
+              />
             </div>
-            <div className="text-xs text-slate-500 mt-1 text-center">
+            <div className="text-xs text-gray-500 mt-2 text-center">
               {completed.length}/{CHECKPOINTS.length} checkpoints complete
             </div>
           </div>
         </div>
 
-        <section className="w-full py-8 md:py-10">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="mb-4 text-sm text-slate-600 bg-slate-50 border-l-4 border-blue-400 p-3 rounded">
-              <strong>Educational Attribution:</strong> Based on the Financial Times article "{ARTICLE_TITLE}" ({ARTICLE_SOURCE}). 
-              Authors: George Parker, Sam Fleming, Delphine Strauss, Ian Smith. 
-              <a href={ARTICLE_URL} target="_blank" rel="noreferrer" className="text-blue-600 ml-1">Read the original</a>.
-              Used here for educational purposes only. Not affiliated with the Financial Times.
+        {/* Main Content */}
+        <div className="py-12 md:py-16">
+          {/* Article Header */}
+          <div className="w-full max-w-3xl mx-auto px-6 mb-12">
+            <div className="mb-6 text-xs text-gray-500 bg-gray-50 border border-gray-200 p-3 rounded">
+              <strong>Attribution:</strong> Based on Financial Times article "{ARTICLE_TITLE}" ({ARTICLE_SOURCE}).
+              Authors: George Parker, Sam Fleming, Delphine Strauss, Ian Smith.
+              <a href={ARTICLE_URL} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline ml-1">
+                Read original
+              </a>
+              . Used for educational purposes.
             </div>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-slate-900">{ARTICLE_TITLE}</h2>
-            <ArticleViewer 
-              paragraphs={ARTICLE_PARAGRAPHS} 
-              keyTerms={KEY_TERMS} 
-              checkpoints={CHECKPOINTS} 
+            <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 mb-2">{ARTICLE_TITLE}</h1>
+            <p className="text-gray-600">Learn to discuss this topic with confidence</p>
+          </div>
+
+          {/* Step 1: Prediction */}
+          <PredictionCard articleId="rachel-reeves-budget" />
+
+          {/* Step 2: Article with Checkpoints */}
+          <InteractiveArticleWrapper
+            articleId="rachel-reeves-budget"
+            onExplainRequest={(text) => {
+              setExplainSelection(text);
+              setShowExplainModal(true);
+            }}
+          >
+            <ArticleViewer
+              paragraphs={ARTICLE_PARAGRAPHS}
+              keyTerms={KEY_TERMS}
+              checkpoints={CHECKPOINTS}
               onStartCheckpoint={startCheckpoint}
               completedCheckpoints={completed}
             />
-            <div className="mt-8 text-sm text-slate-500">Original article: <a href={ARTICLE_URL} target="_blank" rel="noreferrer" className="text-blue-600">FT link</a></div>
+          </InteractiveArticleWrapper>
+
+          {/* Step 3: Reflection */}
+          <ReflectionCard articleId="rachel-reeves-budget" />
+
+          {/* XP Summary */}
+          <div className="w-full max-w-3xl mx-auto px-6 mb-12">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="text-lg">📊</span> Your Progress
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{xp}</div>
+                  <div className="text-xs text-gray-600 mt-1">Total XP</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{completed.length}</div>
+                  <div className="text-xs text-gray-600 mt-1">Checkpoints Done</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">{level.name.split(':')[0]}</div>
+                  <div className="text-xs text-gray-600 mt-1">Your Level</div>
+                </div>
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
       </div>
 
       {/* Checkpoint Modal */}
@@ -150,32 +201,32 @@ export default function LessonPage() {
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-3xl">🎯</span>
                   <div>
-                    <h3 className="text-2xl font-bold text-slate-900">{cp.title}</h3>
-                    <p className="text-slate-600 text-sm mt-1">{cp.helperText}</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{cp.title}</h3>
+                    <p className="text-gray-600 text-sm mt-1">{cp.helperText}</p>
                   </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <p className="text-slate-800 font-medium">{cp.prompt}</p>
+                  <p className="text-gray-800 font-medium">{cp.prompt}</p>
                 </div>
 
                 <textarea
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
-                  className="w-full p-4 border border-slate-300 rounded-lg h-40 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                  className="w-full p-4 border border-gray-300 rounded-lg h-40 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4 resize-none"
                   placeholder="Type your analysis here..."
                 />
 
                 <div className="flex items-center gap-3 mb-6">
                   <button
                     onClick={() => submitAnswer(cp.id)}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-semibold text-lg"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-semibold text-lg transition-all"
                   >
                     ✓ Check Answer
                   </button>
                   <button
                     onClick={() => revealHint(cp.id)}
-                    className="px-5 py-3 border-2 border-amber-300 text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 font-semibold"
+                    className="px-5 py-3 border-2 border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg font-semibold transition-colors"
                   >
                     💡 Hint (-5 XP)
                   </button>
@@ -193,22 +244,20 @@ export default function LessonPage() {
                     <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg">
                       <div className="font-semibold text-emerald-900 mb-2">✓ Feedback</div>
                       <p className="text-emerald-800 text-sm">
-                        {answer.trim().length < 30 ? (
-                          'Try to go deeper: mention at least one of [tax revenues / productivity / market confidence].'
-                        ) : (
-                          'Great effort! Compare your answer to the expert response below.'
-                        )}
+                        {answer.trim().length < 30
+                          ? 'Try to go deeper: mention at least one of [tax revenues / productivity / market confidence].'
+                          : 'Great effort! Compare your answer to the expert response below.'}
                       </p>
                     </div>
 
-                    <div className="bg-slate-100 border border-slate-300 p-4 rounded-lg">
-                      <div className="font-semibold text-slate-900 mb-2">Expert Response</div>
-                      <p className="text-slate-700 text-sm italic">{cp.modelAnswer}</p>
+                    <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg">
+                      <div className="font-semibold text-gray-900 mb-2">Expert Response</div>
+                      <p className="text-gray-700 text-sm italic">{cp.modelAnswer}</p>
                     </div>
 
                     <button
                       onClick={closeCheckpointModal}
-                      className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 font-semibold text-lg"
+                      className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 font-semibold text-lg transition-colors"
                     >
                       Continue Reading →
                     </button>
@@ -224,16 +273,17 @@ export default function LessonPage() {
       <Modal isOpen={showCompletionModal} onClose={() => setShowCompletionModal(false)}>
         <div className="p-8 text-center">
           <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-3">Congratulations!</h2>
-          <p className="text-lg text-slate-700 mb-6">
-            You've completed all checkpoints and earned <span className="font-bold text-blue-600">{xp} XP</span>!
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">Congratulations!</h2>
+          <p className="text-lg text-gray-700 mb-6">
+            You've completed all checkpoints and earned{' '}
+            <span className="font-bold text-blue-600">{xp} XP</span>!
           </p>
-          
+
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 mb-6">
-            <p className="text-slate-800 font-medium mb-4">
+            <p className="text-gray-800 font-medium mb-4">
               If you enjoyed this demo, you'll love the full experience:
             </p>
-            <ul className="text-left text-sm text-slate-700 space-y-2 mb-4">
+            <ul className="text-left text-sm text-gray-700 space-y-2 mb-4">
               <li>✓ Daily finance news articles with checkpoints</li>
               <li>✓ Compete in duels against other learners</li>
               <li>✓ Join clans and climb leaderboards</li>
@@ -245,19 +295,27 @@ export default function LessonPage() {
             href={GOOGLE_FORM}
             target="_blank"
             rel="noreferrer"
-            className="block w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-bold text-lg mb-3"
+            className="block w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-bold text-lg mb-3 transition-all"
           >
             Join the Beta →
           </a>
-          
+
           <button
             onClick={() => setShowCompletionModal(false)}
-            className="text-slate-600 hover:text-slate-800 text-sm"
+            className="text-gray-600 hover:text-gray-800 text-sm transition-colors"
           >
             Close
           </button>
         </div>
       </Modal>
+
+      {/* Interview Explain Modal */}
+      <InterviewExplainModal
+        isOpen={showExplainModal}
+        onClose={() => setShowExplainModal(false)}
+        selectedText={explainSelection}
+        articleTitle={ARTICLE_TITLE}
+      />
     </>
   );
 }
