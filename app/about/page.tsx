@@ -14,7 +14,7 @@ export default function About() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
               <h1 className="text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
-                Why Finquest?
+                Why Scio?
               </h1>
 
               <p className="mt-6 text-lg text-slate-700 leading-relaxed">
@@ -22,7 +22,7 @@ export default function About() {
               </p>
 
               <p className="mt-4 text-lg text-slate-700 leading-relaxed">
-                Finquest transforms finance articles into short, interactive learning runs. Read real news. Get inline explanations. Answer implication questions. Earn XP. No rote memorization—just thinking like an analyst.
+                Scio transforms finance articles into short, interactive learning runs. Read real news. Get inline explanations. Answer implication questions. Earn XP. No rote memorization—just thinking like an analyst.
               </p>
 
               <p className="mt-4 text-lg text-slate-700 leading-relaxed">

@@ -7,7 +7,7 @@ export default function NavBar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left: Logo */}
         <Link href="/" className="text-lg font-semibold text-slate-900">
-          Finquest
+          Scio
         </Link>
 
         {/* Right: Nav Links + CTA */}

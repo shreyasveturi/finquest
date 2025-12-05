@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Finquest — Gamified finance-news learning',
+  title: 'Scio — Gamified finance-news learning',
   description:
     'Turn finance articles into short interactive learning runs for internship prep. Try the Budget Demo.',
 };

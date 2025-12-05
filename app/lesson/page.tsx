@@ -33,9 +33,9 @@ export default function LessonPage() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('finquest_xp');
-      const comp = localStorage.getItem('finquest_completed');
-      const hints = localStorage.getItem('finquest_hints');
+      const raw = localStorage.getItem('scio_xp');
+      const comp = localStorage.getItem('scio_completed');
+      const hints = localStorage.getItem('scio_hints');
       if (raw) setXp(parseInt(raw, 10) || 0);
       if (comp) setCompleted(JSON.parse(comp));
       if (hints) setHintUsed(JSON.parse(hints));
@@ -45,15 +45,15 @@ export default function LessonPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('finquest_xp', String(xp));
+    localStorage.setItem('scio_xp', String(xp));
   }, [xp]);
 
   useEffect(() => {
-    localStorage.setItem('finquest_completed', JSON.stringify(completed));
+    localStorage.setItem('scio_completed', JSON.stringify(completed));
   }, [completed]);
 
   useEffect(() => {
-    localStorage.setItem('finquest_hints', JSON.stringify(hintUsed));
+    localStorage.setItem('scio_hints', JSON.stringify(hintUsed));
   }, [hintUsed]);
 
   const completedSet = useMemo(() => new Set(completed), [completed]);

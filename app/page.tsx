@@ -96,7 +96,7 @@ export default function Home() {
         <section className="w-full bg-white py-16 md:py-20 border-t border-slate-100">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900">How Finquest Helps You Learn</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900">How Scio Helps You Learn</h2>
               <p className="mt-3 text-lg text-slate-600">Three steps to financial literacy mastery</p>
             </div>
 
@@ -135,7 +135,7 @@ export default function Home() {
         <section className="w-full bg-blue-600 py-16 md:py-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-white">Ready to master finance news?</h2>
-            <p className="mt-4 text-lg text-blue-100">Get early access to Finquest. No credit card required.</p>
+            <p className="mt-4 text-lg text-blue-100">Get early access to Scio. No credit card required.</p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/lesson">

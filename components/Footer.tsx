@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
-            <h4 className="text-white font-bold mb-4">Finquest</h4>
+            <h4 className="text-white font-bold mb-4">Scio</h4>
             <p className="text-sm">Learn finance news through real articles and interactive checkpoints.</p>
           </div>
           <div>
@@ -32,7 +32,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-slate-800 pt-8 text-sm">
-          <p className="mb-2">© 2025 Finquest. Educational tool for learning market concepts.</p>
+          <p className="mb-2">© 2025 Scio. Educational tool for learning market concepts.</p>
           <p className="text-xs">Not affiliated with the Financial Times or UK Government. For educational use only.</p>
         </div>
       </div>

@@ -89,7 +89,7 @@ export default function LandingPage() {
                     Turn finance news into <span className="text-emerald-600">interview-ready</span> insight.
                   </h1>
                   <p className="mt-6 text-lg md:text-xl text-slate-600 leading-relaxed max-w-xl">
-                    Finquest transforms real Financial Times articles into gamified practice runs. Learn like you're interviewing at a top finance firm — with instant feedback, XP rewards, and skills that matter.
+                    Scio transforms real Financial Times articles into gamified practice runs. Learn like you're interviewing at a top finance firm — with instant feedback, XP rewards, and skills that matter.
                   </p>
                 </div>
 
@@ -172,7 +172,7 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16 md:mb-20">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
-                How Finquest helps you learn
+                How Scio helps you learn
               </h2>
               <p className="text-lg text-slate-600 max-w-2xl mx-auto">
                 A three-step process designed to build real analyst skills
@@ -272,7 +272,7 @@ export default function LandingPage() {
         <footer className="border-t border-slate-100 bg-white py-12">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row items-center justify-between text-sm text-slate-600 space-y-4 md:space-y-0">
-              <div>© 2025 Finquest. All rights reserved.</div>
+              <div>© 2025 Scio. All rights reserved.</div>
               <div className="flex gap-6">
                 <a href="/about" className="hover:text-slate-900 transition">
                   About
