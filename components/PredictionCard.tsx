@@ -75,7 +75,7 @@ export default function PredictionCard({ articleId, title = 'Your Prediction' }:
             setIsSaved(false);
           }}
           placeholder="Write your prediction here..."
-          className="w-full h-20 p-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="w-full h-20 p-3 text-sm text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none"
         />
 
         <div className="flex items-center justify-between mt-4">
