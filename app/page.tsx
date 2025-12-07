@@ -17,15 +17,15 @@ export default function Home() {
             aria-hidden
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-gray-900/85 to-gray-900/60" aria-hidden />
-          <div className="relative max-w-2xl mx-auto px-8 md:px-12 w-full text-center text-white py-20">
+          <div className="relative max-w-2xl mx-auto px-8 md:px-12 w-full text-center py-20">
             <div className="space-y-10">
               {/* Main Heading */}
-              <h1 className="font-serif text-[2.5rem] md:text-[3rem] font-semibold leading-[1.15] tracking-tight">
+              <h1 className="font-serif text-[2.5rem] md:text-[3rem] font-semibold leading-[1.15] tracking-tight text-white">
                 Turn finance news into interview-ready insight.
               </h1>
 
               {/* Subheading */}
-              <p className="text-base md:text-lg text-neutral-300 leading-relaxed max-w-xl mx-auto">
+              <p className="text-base md:text-lg text-white/80 leading-relaxed max-w-xl mx-auto">
                 Learn to truly understand markets through minimalist, AI-powered articles. No fluff. Just clarity.
               </p>
 
@@ -37,7 +37,7 @@ export default function Home() {
                   </button>
                 </Link>
                 <a href={GOOGLE_FORM} target="_blank" rel="noreferrer">
-                  <button className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg border border-white/20 transition-colors">
+                  <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                     Join Beta List
                   </button>
                 </a>
