@@ -12,13 +12,13 @@ export default function NavBar() {
         <div className="flex items-center gap-4 md:gap-6 flex-wrap">
           <Link
             href="/#about"
-            className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 hover:underline underline-offset-4 transition"
+            className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 transition-all duration-150 ease-out hover:underline underline-offset-4"
           >
             About
           </Link>
           <Link
             href="/lesson"
-            className="text-sm md:text-base text-white bg-neutral-900 px-4 py-1.5 rounded-lg hover:opacity-90 transition"
+            className="text-sm md:text-base text-white bg-neutral-900 px-4 py-1.5 rounded-lg hover:opacity-90 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
           >
             Try lesson
           </Link>
@@ -26,7 +26,7 @@ export default function NavBar() {
             href={GOOGLE_FORM}
             target="_blank"
             rel="noreferrer"
-            className="text-sm md:text-base bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition"
+            className="text-sm md:text-base bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
           >
             Join beta
           </a>

@@ -3,8 +3,16 @@
 import Link from 'next/link';
 import Button from '../components/Button';
 import { GOOGLE_FORM } from '../content/rachelReevesBudget';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const [heroVisible, setHeroVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setHeroVisible(true), 20);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <>
       <main className="w-full bg-white">
@@ -18,24 +26,24 @@ export default function Home() {
           <div className="relative max-w-2xl mx-auto px-8 md:px-12 w-full text-center py-20">
             <div className="space-y-10">
               {/* Main Heading */}
-              <h1 className="font-serif text-[2.5rem] md:text-[3rem] font-semibold leading-[1.15] tracking-tight text-white">
+              <h1 className={`font-serif text-[2.5rem] md:text-[3rem] font-semibold leading-[1.15] tracking-tight text-white transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
                 Turn finance news into interview-ready insight.
               </h1>
 
               {/* Subheading */}
-              <p className="text-base md:text-lg text-white/80 leading-relaxed max-w-xl mx-auto">
+              <p className={`text-base md:text-lg text-white/80 leading-relaxed max-w-xl mx-auto transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100 delay-100' : 'opacity-0'}`}>
                 Learn to truly understand markets through minimalist, AI-powered articles. No fluff. Just clarity.
               </p>
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3 pt-6 justify-center items-center">
                 <Link href="/lesson">
-                  <button className="px-5 py-2.5 bg-neutral-800 hover:opacity-90 text-white font-medium rounded-lg transition-opacity">
+                  <button className="px-5 py-2.5 bg-neutral-800 hover:opacity-90 text-white font-medium rounded-lg transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform">
                     Try Demo
                   </button>
                 </Link>
                 <a href={GOOGLE_FORM} target="_blank" rel="noreferrer">
-                  <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                  <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform">
                     Join Beta List
                   </button>
                 </a>

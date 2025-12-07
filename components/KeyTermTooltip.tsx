@@ -69,7 +69,7 @@ export default function KeyTermTooltip({ term }: { term: KeyTerm }) {
               style={{ left: pos.left, top: pos.top }}
               onMouseEnter={() => setOpen(true)}
               onMouseLeave={() => setOpen(false)}
-              className="fixed z-50 w-80 max-w-[320px] bg-white border border-neutral-200 shadow-md rounded-xl p-4 animate-in fade-in duration-150"
+              className="fixed z-50 w-80 max-w-[320px] bg-white border border-neutral-200 shadow-md rounded-xl p-4 animate-tooltip"
             >
               <div className="text-xs uppercase tracking-wide text-neutral-500 font-semibold mb-2">Explanation</div>
               <div className="font-semibold text-neutral-900 mb-2">{term.term}</div>
