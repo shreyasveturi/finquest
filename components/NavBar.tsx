@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { GOOGLE_FORM } from '../content/rachelReevesBudget';
 
 export default function NavBar() {
   return (
@@ -21,6 +22,14 @@ export default function NavBar() {
           >
             Try lesson
           </Link>
+          <a
+            href={GOOGLE_FORM}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm md:text-base bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition"
+          >
+            Join beta
+          </a>
         </div>
       </div>
     </nav>
