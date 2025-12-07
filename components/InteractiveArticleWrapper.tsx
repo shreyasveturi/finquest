@@ -114,6 +114,13 @@ export default function InteractiveArticleWrapper({
             top: `${selectionPos.top}px`,
             left: `${selectionPos.left}px`,
           }}
+          onMouseDown={(e) => {
+            // Stop bubbling so mouseup on wrapper does not clear the selection before click fires.
+            e.stopPropagation();
+          }}
+          onMouseUp={(e) => {
+            e.stopPropagation();
+          }}
           onClick={handleExplain}
         >
           Explain: "{selectedText.slice(0, 30)}..."

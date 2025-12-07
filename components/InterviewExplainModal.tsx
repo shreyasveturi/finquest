@@ -79,35 +79,48 @@ export default function InterviewExplainModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="space-y-4 max-w-md">
-        <h2 className="text-xl font-bold text-gray-900">Interview Explanation</h2>
-
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
-          <p className="text-xs font-medium text-gray-600 mb-2">SELECTED TEXT</p>
-          <p className="text-gray-900">"{selectedText}"</p>
-        </div>
-
-        <div className="bg-blue-50 p-4 rounded border border-blue-200">
-          <p className="text-xs font-medium text-blue-600 mb-2">💡 HOW TO EXPLAIN THIS</p>
-          {loading && <p className="text-sm text-gray-700">Generating...</p>}
-          {!loading && error && (
-            <p className="text-sm text-rose-700">{error}</p>
-          )}
-          {!loading && !error && explanation && (
-            <p className="text-sm text-gray-800 whitespace-pre-line">{explanation}</p>
-          )}
-          {!loading && !error && !explanation && (
-            <p className="text-sm text-amber-700">No explanation available. Please try again or select a different portion of text.</p>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 pt-4">
+      <div className="max-w-xl w-full p-6 md:p-8 mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.08em] text-gray-500 font-semibold">AI explain</p>
+            <h2 className="text-2xl font-bold text-gray-900">Interview-ready framing</h2>
+          </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium rounded transition-colors"
+            className="text-gray-500 hover:text-gray-700 text-sm font-semibold"
           >
             Close
           </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-[11px] font-semibold text-gray-500 tracking-[0.08em] mb-1">SELECTED TEXT</p>
+            <p className="text-gray-900 leading-relaxed">“{selectedText}”</p>
+          </div>
+
+          <div className="rounded-xl border border-blue-200 bg-blue-50/80 px-4 py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm">💡</span>
+              <p className="text-[11px] font-semibold text-blue-700 tracking-[0.08em]">HOW TO EXPLAIN IT</p>
+            </div>
+
+            {loading && (
+              <p className="text-sm text-gray-700">Generating a concise, interview-friendly take…</p>
+            )}
+
+            {!loading && error && (
+              <p className="text-sm text-rose-700">{error}</p>
+            )}
+
+            {!loading && !error && explanation && (
+              <p className="text-sm text-gray-900 leading-relaxed whitespace-pre-line">{explanation}</p>
+            )}
+
+            {!loading && !error && !explanation && (
+              <p className="text-sm text-amber-700">No explanation available. Please try again or select a different portion of text.</p>
+            )}
+          </div>
         </div>
       </div>
     </Modal>
