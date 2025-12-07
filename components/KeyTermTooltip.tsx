@@ -47,7 +47,7 @@ export default function KeyTermTooltip({ term }: { term: KeyTerm }) {
         }}
         onMouseEnter={() => openWithPosition()}
         onMouseLeave={() => setOpen(false)}
-        className="rounded-sm border-b-2 border-dotted border-emerald-500 text-emerald-600 hover:text-emerald-700 px-[2px] py-[1px] font-medium cursor-help"
+        className="rounded-sm border-b border-dotted border-blue-400 text-blue-600 hover:text-blue-700 px-[2px] py-[1px] font-medium cursor-help transition-colors"
         aria-expanded={open}
       >
         {term.term}

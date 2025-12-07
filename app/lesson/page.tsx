@@ -136,10 +136,10 @@ export default function LessonPage() {
         </div>
 
         {/* Main Content */}
-        <div className="py-12 md:py-16">
+        <div className="py-16 md:py-20">
           {/* Article Header */}
-          <div className="w-full max-w-3xl mx-auto px-6 mb-12">
-            <div className="mb-6 text-xs text-gray-500 bg-gray-50 border border-gray-200 p-3 rounded">
+          <div className="w-full max-w-3xl mx-auto px-6 md:px-12 mb-16">
+            <div className="mb-8 text-xs text-gray-500 bg-gray-50 border border-gray-200 p-3 rounded">
               <strong>Attribution:</strong> Based on Financial Times article "{ARTICLE_TITLE}" ({ARTICLE_SOURCE}).
               Authors: George Parker, Sam Fleming, Delphine Strauss, Ian Smith.
               <a href={ARTICLE_URL} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline ml-1">
@@ -147,8 +147,8 @@ export default function LessonPage() {
               </a>
               . Used for educational purposes.
             </div>
-            <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 mb-2">{ARTICLE_TITLE}</h1>
-            <p className="text-gray-600">Learn to discuss this topic with confidence</p>
+            <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 mb-4">{ARTICLE_TITLE}</h1>
+            <p className="text-gray-600 text-lg">Learn to discuss this topic with confidence</p>
           </div>
 
           {/* Step 1: Prediction */}

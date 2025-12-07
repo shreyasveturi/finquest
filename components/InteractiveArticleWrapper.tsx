@@ -102,7 +102,7 @@ export default function InteractiveArticleWrapper({
     <div
       ref={wrapperRef}
       onMouseUp={handleMouseUp}
-      className="relative w-full max-w-3xl mx-auto px-6 mb-8"
+      className="relative w-full max-w-3xl mx-auto px-6 md:px-12 mb-16"
     >
       {children}
 

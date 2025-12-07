@@ -48,7 +48,7 @@ export default function ArticleViewer({
   }, [paragraphs, keyTerms]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {paragraphs.map((p, idx) => {
         // Find the paragraph index of the next incomplete checkpoint
         let firstIncompleteCheckpointParagraphIndex = -1;
@@ -63,8 +63,8 @@ export default function ArticleViewer({
         const shouldBlur = firstIncompleteCheckpointParagraphIndex >= 0 && idx > firstIncompleteCheckpointParagraphIndex;
 
         return (
-          <div key={p.id} className="relative">
-            <div className={`text-base text-gray-900 leading-relaxed mb-6 transition-all duration-300 ${shouldBlur ? 'blur-sm opacity-50 pointer-events-none select-none' : ''}`}>
+          <div key={p.id} className="relative mb-6">
+            <div className={`text-base text-gray-900 leading-[1.75] transition-all duration-300 ${shouldBlur ? 'blur-sm opacity-50 pointer-events-none select-none' : ''}`}>
               <AnnotatedParagraph text={p.text} keyTerms={keyTerms} usedTerms={usedTermsByParagraph.get(p.id)} />
             </div>
 
