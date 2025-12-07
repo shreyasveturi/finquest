@@ -83,8 +83,10 @@ export default function InteractiveArticleWrapper({
   const handleExplain = () => {
     if (!selectedText) return;
 
+    console.log('[InteractiveArticleWrapper] Explain clicked, selected text:', selectedText);
     trackInterviewExplainUse();
     if (onExplainRequest) {
+      console.log('[InteractiveArticleWrapper] Calling onExplainRequest');
       onExplainRequest(selectedText);
     }
 
