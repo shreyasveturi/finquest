@@ -28,6 +28,29 @@ export default function About() {
           </div>
         </section>
 
+        {/* AI Demo Section */}
+        <section className="max-w-5xl mx-auto px-6 md:px-10 py-16 md:py-20 space-y-6">
+          <div className="text-center">
+            <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-3">
+              See Scio's AI explain the news in real time
+            </h2>
+            <p className="text-lg text-gray-600">
+              Highlight a sentence → get instant, interview-ready insight.
+            </p>
+          </div>
+          
+          <div className="aspect-video w-full max-w-3xl mx-auto rounded-2xl border border-neutral-200 shadow-sm overflow-hidden bg-black">
+            <video
+              src="/Scio.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          </div>
+        </section>
+
         {/* Core Benefits Section */}
         <section className="w-full py-16 md:py-20">
           <div className="max-w-3xl mx-auto px-6">
