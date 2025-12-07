@@ -13,16 +13,16 @@ export default function About() {
         <section className="w-full py-16 md:py-24 border-b border-gray-200">
           <div className="max-w-3xl mx-auto px-6">
             <h1 className="text-5xl md:text-6xl font-semibold text-gray-900 mb-6">
-              Why Scio?
+              Why Scio
             </h1>
             <p className="text-lg text-gray-700 leading-relaxed mb-4">
-              Students preparing for finance internships are drowning in dry PDFs, 50-page market reports, and technical jargon. They memorize concepts without understanding implications. They can't discuss real market events with confidence.
+              Finance candidates consume news without understanding implications. They memorize terms but can’t explain market impact — the exact skill interviews test.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed mb-4">
-              Scio transforms finance articles into short, interactive learning experiences. Read real news. Get inline explanations. Answer implication questions. Build genuine understanding—not rote memorization.
+              Scio turns real finance articles into structured, interactive learning.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed">
-              Designed for students targeting 2026/27 finance internships and spring week programs. Built by people who've sat in those interviews and know what actually matters.
+              Highlight terms for instant explanations. Answer implication-focused questions. Build the ability to discuss markets with clarity and confidence.
             </p>
           </div>
         </section>
@@ -38,8 +38,8 @@ export default function About() {
                 <div className="flex items-start gap-4 mb-3">
                   <span className="text-2xl">🎯</span>
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">Predict First</h3>
-                    <p className="text-gray-600 text-sm mt-1">Before reading, write your prediction about what the article will cover. Activate your thinking.</p>
+                    <h3 className="font-semibold text-gray-900 text-lg">Predict</h3>
+                    <p className="text-gray-600 text-sm mt-1">Start with a quick prediction to activate prior knowledge.</p>
                   </div>
                 </div>
               </div>
@@ -49,8 +49,8 @@ export default function About() {
                 <div className="flex items-start gap-4 mb-3">
                   <span className="text-2xl">📖</span>
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">Learn as You Read</h3>
-                    <p className="text-gray-600 text-sm mt-1">Interactive explanations, tooltips, and AI insights embedded throughout. Answer checkpoint questions to test your understanding.</p>
+                    <h3 className="font-semibold text-gray-900 text-lg">Learn While Reading</h3>
+                    <p className="text-gray-600 text-sm mt-1">Inline explanations and targeted checkpoints guide you through the article’s key mechanics.</p>
                   </div>
                 </div>
               </div>
@@ -60,8 +60,8 @@ export default function About() {
                 <div className="flex items-start gap-4 mb-3">
                   <span className="text-2xl">💭</span>
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">Prove You Understand</h3>
-                    <p className="text-gray-600 text-sm mt-1">Explain the main concept in your own words. Compare your thinking to expert responses. Build retrievable memory.</p>
+                    <h3 className="font-semibold text-gray-900 text-lg">Demonstrate Understanding</h3>
+                    <p className="text-gray-600 text-sm mt-1">Summarize the core idea or choose from expert-aligned interpretations.</p>
                   </div>
                 </div>
               </div>
@@ -71,8 +71,8 @@ export default function About() {
                 <div className="flex items-start gap-4 mb-3">
                   <span className="text-2xl">🏆</span>
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">Track Your Mastery</h3>
-                    <p className="text-gray-600 text-sm mt-1">Earn XP for deep learning—predictions, reflections, and correct analysis. Watch your understanding grow.</p>
+                    <h3 className="font-semibold text-gray-900 text-lg">Track Progress</h3>
+                    <p className="text-gray-600 text-sm mt-1">Earn XP for reasoning and accuracy — not streaks.</p>
                   </div>
                 </div>
               </div>
@@ -88,32 +88,27 @@ export default function About() {
             <div className="space-y-6">
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Real Finance Content</h3>
-                <p className="text-gray-700">Learn from actual Financial Times articles and real market events—not textbooks or simulations.</p>
+                <p className="text-gray-700">Learn directly from live Financial Times articles and current events.</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Learning Over Engagement</h3>
-                <p className="text-gray-700">Every feature exists to deepen understanding. No streaks, notifications, or FOMO mechanics that distract from learning.</p>
+                <h3 className="font-semibold text-gray-900 mb-2">Mastery, Not Streaks</h3>
+                <p className="text-gray-700">Gamification exists only to deepen understanding. No streaks, guilt loops, or engagement hacks.</p>
               </div>
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Minimalist Design</h3>
-                <p className="text-gray-700">Calm, focused aesthetic designed to reduce distractions. Read like an interactive notebook, not a gamified app.</p>
+                <p className="text-gray-700">A clean, focused reading environment designed for analysis.</p>
               </div>
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Explanations</h3>
-                <p className="text-gray-700">Highlight any text to get instant, interview-focused explanations. Understand the "why" and the "so what."</p>
+                <p className="text-gray-700">Highlight any sentence to get clear, interview-relevant insight into the concept and its implications.</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Expert Feedback</h3>
-                <p className="text-gray-700">Compare your analysis to expert responses. Learn how actual analysts think about market events.</p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Your Interview Edge</h3>
-                <p className="text-gray-700">This isn't just knowledge—it's the ability to discuss finance like you live and breathe it. That's what separates you in interviews.</p>
+                <h3 className="font-semibold text-gray-900 mb-2">Analyst-Style Reasoning</h3>
+                <p className="text-gray-700">Compare your conclusions to expert interpretations.</p>
               </div>
             </div>
           </div>
@@ -126,23 +121,23 @@ export default function About() {
             
             <div className="space-y-6">
               <div className="border border-gray-200 rounded-lg p-6">
-                <div className="font-semibold text-gray-900 mb-2">📅 Daily Learning Runs</div>
-                <p className="text-gray-600">New macro + equities articles every day. Build momentum and track your learning progression.</p>
+                <div className="font-semibold text-gray-900 mb-2">📅 Daily article-based learning</div>
+                <p className="text-gray-600">Fresh finance news pieces turned into interactive lessons.</p>
               </div>
 
               <div className="border border-gray-200 rounded-lg p-6">
-                <div className="font-semibold text-gray-900 mb-2">⚔️ Duels</div>
-                <p className="text-gray-600">Head-to-head challenges where you answer questions faster and better than your peers.</p>
+                <div className="font-semibold text-gray-900 mb-2">⚔️ Peer duels</div>
+                <p className="text-gray-600">Compete on implication analysis and speed.</p>
               </div>
 
               <div className="border border-gray-200 rounded-lg p-6">
-                <div className="font-semibold text-gray-900 mb-2">🏆 Clans & Leaderboards</div>
-                <p className="text-gray-600">Compete with your cohort. Join or create a clan, see who's mastering what, climb together.</p>
+                <div className="font-semibold text-gray-900 mb-2">🏆 Clans & leaderboards</div>
+                <p className="text-gray-600">See who’s progressing fastest and collaborate with your group.</p>
               </div>
 
               <div className="border border-gray-200 rounded-lg p-6">
-                <div className="font-semibold text-gray-900 mb-2">🗺️ Skill Map</div>
-                <p className="text-gray-600">Visualize your mastery across markets, sectors, and concepts. See your growth visually.</p>
+                <div className="font-semibold text-gray-900 mb-2">🗺️ Skill map</div>
+                <p className="text-gray-600">Track strengths across markets and sectors.</p>
               </div>
             </div>
           </div>
