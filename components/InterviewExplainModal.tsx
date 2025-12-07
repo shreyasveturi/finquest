@@ -82,6 +82,9 @@ export default function InterviewExplainModal({
           {!loading && !error && explanation && (
             <p className="text-sm text-gray-800 whitespace-pre-line">{explanation}</p>
           )}
+          {!loading && !error && !explanation && (
+            <p className="text-sm text-amber-700">No explanation available. Please try again or select a different portion of text.</p>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
