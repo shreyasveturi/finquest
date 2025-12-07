@@ -19,6 +19,9 @@ export default function About() {
             <p className="text-lg text-gray-700 leading-relaxed mb-4">
               Scio turns real finance articles into structured, interactive learning.
             </p>
+            <p className="text-lg text-gray-700 leading-relaxed mb-4">
+              At the core is an AI engine that explains any sentence inline and ties it back to market impact.
+            </p>
             <p className="text-lg text-gray-700 leading-relaxed">
               Highlight terms for instant explanations. Answer implication-focused questions. Build the ability to discuss markets with clarity and confidence.
             </p>
@@ -101,7 +104,7 @@ export default function About() {
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Explanations</h3>
-                <p className="text-gray-700">Highlight any sentence to get clear, interview-relevant insight into the concept and its implications.</p>
+                <p className="text-gray-700">Highlight any sentence to get clear, interview-relevant insight into what it means and why it matters.</p>
               </div>
 
               <div>
