@@ -62,6 +62,8 @@ export default function InteractiveArticleWrapper({
     const selection = window.getSelection();
     const text = selection?.toString().trim() || '';
 
+    console.log('[InteractiveArticleWrapper] handleMouseUp fired, selected text:', text);
+
     if (text.length > 0) {
       setSelectedText(text);
 
@@ -73,6 +75,7 @@ export default function InteractiveArticleWrapper({
           top: rect.top - 40,
           left: rect.left,
         });
+        console.log('[InteractiveArticleWrapper] Selection pos set:', { top: rect.top - 40, left: rect.left });
       }
     } else {
       setSelectedText('');
