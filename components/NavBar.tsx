@@ -11,7 +11,7 @@ export default function NavBar() {
 
         <div className="flex items-center gap-4 md:gap-6 flex-wrap">
           <Link
-            href="/#about"
+            href="/about"
             className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 transition-all duration-150 ease-out hover:underline underline-offset-4"
           >
             About

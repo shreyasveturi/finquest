@@ -1,13 +1,11 @@
 'use client';
 
-import NavBar from '../../components/NavBar';
 import Button from '../../components/Button';
 import { GOOGLE_FORM } from '../../content/rachelReevesBudget';
 
 export default function About() {
   return (
     <>
-      <NavBar />
       <div className="w-full bg-white min-h-screen">
         {/* Hero Section */}
         <section className="w-full py-16 md:py-24 border-b border-gray-200">
