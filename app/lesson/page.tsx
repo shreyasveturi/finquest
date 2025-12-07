@@ -6,6 +6,7 @@ import PredictionCard from '../../components/PredictionCard';
 import ReflectionCard from '../../components/ReflectionCard';
 import InteractiveArticleWrapper from '../../components/InteractiveArticleWrapper';
 import InterviewExplainModal from '../../components/InterviewExplainModal';
+import { DEFAULT_CHOICES as DEFAULT_PREDICTION_CHOICES, PREDICTION_CORRECT_ID } from '../../components/PredictionCard';
 import {
   ARTICLE_PARAGRAPHS,
   KEY_TERMS,
@@ -35,15 +36,18 @@ export default function LessonPage() {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [explainSelection, setExplainSelection] = useState('');
   const [showExplainModal, setShowExplainModal] = useState(false);
+  const [predictionChoice, setPredictionChoice] = useState('');
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem('scio_xp');
       const comp = localStorage.getItem('scio_completed');
       const hints = localStorage.getItem('scio_hints');
+      const prediction = localStorage.getItem('scio_prediction_rachel-reeves-budget');
       if (raw) setXp(parseInt(raw, 10) || 0);
       if (comp) setCompleted(JSON.parse(comp));
       if (hints) setHintUsed(JSON.parse(hints));
+      if (prediction) setPredictionChoice(prediction);
     } catch (e) {
       // ignore
     }
@@ -80,12 +84,13 @@ export default function LessonPage() {
     if (!cp) return;
 
     const trimmed = answer.trim();
+    if (!trimmed) return;
+
     if (!completedSet.has(id)) {
       setXp((v) => Math.min(100, v + 20));
       const newCompleted = [...completed, id];
       setCompleted(newCompleted);
-      
-      // Check if all checkpoints are complete
+
       if (newCompleted.length === CHECKPOINTS.length) {
         setTimeout(() => {
           setShowCompletionModal(true);
@@ -103,6 +108,9 @@ export default function LessonPage() {
   }
 
   const level = getLevel(xp);
+  const predictionLabel = DEFAULT_PREDICTION_CHOICES.find((c) => c.id === predictionChoice)?.label;
+  const correctPredictionLabel = DEFAULT_PREDICTION_CHOICES.find((c) => c.id === PREDICTION_CORRECT_ID)?.label;
+  const predictionWasCorrect = predictionChoice === PREDICTION_CORRECT_ID;
 
   return (
     <>
@@ -163,6 +171,23 @@ export default function LessonPage() {
             />
           </InteractiveArticleWrapper>
 
+          {/* Prediction Outcome */}
+          {predictionChoice && (
+            <div className="w-full max-w-3xl mx-auto px-6 mb-12">
+              <div className={`border rounded-lg p-6 flex flex-col gap-3 ${predictionWasCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🎯</span>
+                  <div className="font-semibold text-gray-900">Prediction result</div>
+                </div>
+                <div className="text-sm text-gray-800">Your pick: {predictionLabel || 'Not set'}</div>
+                <div className="text-sm text-gray-800">Expected outcome: {correctPredictionLabel || 'Defined in lesson'}</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {predictionWasCorrect ? 'You nailed the setup.' : 'Compare your pick to what actually happened.'}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Step 3: Reflection */}
           <ReflectionCard articleId="rachel-reeves-budget" />
 
@@ -207,12 +232,15 @@ export default function LessonPage() {
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <p className="text-gray-800 font-medium">{cp.prompt}</p>
+                  <p className="text-gray-900 font-semibold">{cp.prompt}</p>
                 </div>
 
                 <textarea
                   value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
+                  onChange={(e) => {
+                    setAnswer(e.target.value);
+                    setSubmittedFor(null);
+                  }}
                   className="w-full p-4 border border-gray-300 rounded-lg h-40 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4 resize-none"
                   placeholder="Type your analysis here..."
                 />
@@ -252,7 +280,7 @@ export default function LessonPage() {
 
                     <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg">
                       <div className="font-semibold text-gray-900 mb-2">Expert Response</div>
-                      <p className="text-gray-700 text-sm italic">{cp.modelAnswer}</p>
+                      <p className="text-gray-800 text-sm italic">{cp.modelAnswer}</p>
                     </div>
 
                     <button

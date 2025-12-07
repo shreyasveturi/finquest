@@ -10,14 +10,30 @@
 
 import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
+import MultipleChoiceCard from '@/components/MultipleChoiceCard';
 import { trackPredictionWritten } from '@/lib/analytics';
+
+export interface PredictionChoice {
+  id: string;
+  label: string;
+}
 
 interface PredictionCardProps {
   articleId: string;
   title?: string;
+  choices?: PredictionChoice[];
 }
 
-export default function PredictionCard({ articleId, title = 'Your Prediction' }: PredictionCardProps) {
+export const DEFAULT_CHOICES: PredictionChoice[] = [
+  { id: 'tax-rise', label: 'Expect further tax rises to fund spending' },
+  { id: 'spend-cuts', label: 'Expect spending cuts to balance the budget' },
+  { id: 'market-confidence', label: 'Expect measures to reassure markets and lower yields' },
+  { id: 'status-quo', label: 'Expect minimal changes; steady status quo' },
+];
+
+export const PREDICTION_CORRECT_ID = 'tax-rise';
+
+export default function PredictionCard({ articleId, title = 'Your Prediction', choices = DEFAULT_CHOICES }: PredictionCardProps) {
   const [prediction, setPrediction] = useState('');
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +55,7 @@ export default function PredictionCard({ articleId, title = 'Your Prediction' }:
 
   const handleSave = () => {
     try {
+      if (!prediction) return;
       localStorage.setItem(`scio_prediction_${articleId}`, prediction);
       setIsSaved(true);
       trackPredictionWritten();
@@ -60,33 +77,24 @@ export default function PredictionCard({ articleId, title = 'Your Prediction' }:
   return (
     <div className="w-full max-w-3xl mx-auto px-6 mb-12">
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <label htmlFor={`prediction-${articleId}`} className="block text-sm font-medium text-gray-700 mb-2">
-          {title}
-        </label>
-        <p className="text-xs text-gray-500 mb-4">
-          Before reading, what do you predict this article will cover?
-        </p>
-        
-        <textarea
-          id={`prediction-${articleId}`}
+        <label className="block text-sm font-medium text-gray-700 mb-2">{title}</label>
+        <p className="text-xs text-gray-500 mb-4">Before reading, pick the outcome you expect.</p>
+
+        <MultipleChoiceCard
+          choices={choices}
           value={prediction}
-          onChange={(e) => {
-            setPrediction(e.target.value);
+          onChange={(val) => {
+            setPrediction(val);
             setIsSaved(false);
           }}
-          placeholder="Write your prediction here..."
-          className="w-full h-20 p-3 text-sm text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none"
         />
 
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-xs text-gray-500">
-            {prediction.length} characters
-          </div>
+        <div className="flex items-center justify-end mt-4">
           <Button
             variant={isSaved ? 'outline' : 'primary'}
             className="text-sm px-3 py-2"
             onClick={handleSave}
-            disabled={!prediction.trim()}
+            disabled={!prediction}
           >
             {isSaved ? '✓ Saved' : 'Save Prediction'}
           </Button>

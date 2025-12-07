@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
+import ExperienceRating from '@/components/ExperienceRating';
 import { trackReflectionWritten } from '@/lib/analytics';
 
 interface ReflectionCardProps {
@@ -19,7 +20,6 @@ interface ReflectionCardProps {
 
 export default function ReflectionCard({ articleId, title = 'Your Reflection' }: ReflectionCardProps) {
   const [reflection, setReflection] = useState('');
-  const [prediction, setPrediction] = useState('');
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -27,14 +27,9 @@ export default function ReflectionCard({ articleId, title = 'Your Reflection' }:
   useEffect(() => {
     try {
       const storedReflection = localStorage.getItem(`scio_reflection_${articleId}`);
-      const storedPrediction = localStorage.getItem(`scio_prediction_${articleId}`);
-      
       if (storedReflection) {
         setReflection(storedReflection);
         setIsSaved(true);
-      }
-      if (storedPrediction) {
-        setPrediction(storedPrediction);
       }
     } catch (e) {
       console.error('Failed to load reflection:', e);
@@ -45,6 +40,7 @@ export default function ReflectionCard({ articleId, title = 'Your Reflection' }:
 
   const handleSave = () => {
     try {
+      if (!reflection) return;
       localStorage.setItem(`scio_reflection_${articleId}`, reflection);
       setIsSaved(true);
       trackReflectionWritten();
@@ -66,42 +62,27 @@ export default function ReflectionCard({ articleId, title = 'Your Reflection' }:
   return (
     <div className="w-full max-w-3xl mx-auto px-6 mb-12">
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <label htmlFor={`reflection-${articleId}`} className="block text-sm font-medium text-gray-700 mb-2">
-          {title}
-        </label>
-        <p className="text-xs text-gray-500 mb-4">
-          How would you explain the main concept in your own words?
-        </p>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Describe your Scio experience.</label>
+        <p className="text-xs text-gray-500 mb-4">Pick the option that best matches how this felt.</p>
 
-        {prediction && (
-          <details className="mb-6 p-3 bg-gray-50 rounded border border-gray-200 text-xs cursor-pointer">
-            <summary className="font-medium text-gray-700">Your Original Prediction</summary>
-            <p className="mt-3 text-gray-600">{prediction}</p>
-          </details>
-        )}
-
-        <textarea
-          id={`reflection-${articleId}`}
+        <ExperienceRating
           value={reflection}
-          onChange={(e) => {
-            setReflection(e.target.value);
+          onChange={(val) => {
+            setReflection(val);
             setIsSaved(false);
           }}
-          placeholder="Explain the concept as if in an interview..."
-          className="w-full h-24 p-3 text-sm text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none"
+          title="How was this demo?"
+          subtitle="Choose one"
         />
 
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-xs text-gray-500">
-            {reflection.length} characters
-          </div>
+        <div className="flex items-center justify-end mt-4">
           <Button
             variant={isSaved ? 'outline' : 'primary'}
             className="text-sm px-3 py-2"
             onClick={handleSave}
-            disabled={!reflection.trim()}
+            disabled={!reflection}
           >
-            {isSaved ? '✓ Saved' : 'Save Reflection'}
+            {isSaved ? '✓ Saved' : 'Save Experience'}
           </Button>
         </div>
       </div>

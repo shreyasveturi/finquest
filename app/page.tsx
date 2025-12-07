@@ -11,28 +11,36 @@ export default function Home() {
       <NavBar />
       <main className="w-full bg-white">
         {/* Hero Section */}
-        <section className="w-full py-32 md:py-48 border-b border-gray-200 flex items-center">
-          <div className="max-w-3xl mx-auto px-6 w-full text-center">
+        <section className="relative w-full py-32 md:py-48 border-b border-gray-200 flex items-center overflow-hidden">
+          <div
+            className="absolute inset-0 bg-[url('/demo-snapshot.svg')] bg-cover bg-center scale-105"
+            aria-hidden
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/90 to-gray-900/75" aria-hidden />
+          <div className="relative max-w-3xl mx-auto px-6 w-full text-center text-white">
             <div className="space-y-8">
               {/* Main Heading */}
-              <h1 className="text-5xl md:text-6xl font-semibold text-gray-900 leading-tight">
+              <h1 className="text-5xl md:text-6xl font-semibold leading-tight drop-shadow-sm">
                 Turn finance news into interview-ready insight.
               </h1>
 
               {/* Subheading */}
-              <p className="text-lg md:text-xl text-gray-700 leading-relaxed mx-auto">
+              <p className="text-lg md:text-xl text-gray-100 leading-relaxed mx-auto drop-shadow-sm">
                 Scio teaches you to truly understand markets — through minimalist, interactive articles powered by AI.
               </p>
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center">
                 <Link href="/lesson">
-                  <Button variant="primary" className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
+                  <Button variant="primary" className="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg shadow-blue-500/30">
                     Try Demo
                   </Button>
                 </Link>
                 <a href={GOOGLE_FORM} target="_blank" rel="noreferrer">
-                  <Button variant="outline" className="px-8 py-3 border border-gray-300 text-gray-900 hover:bg-gray-50 font-semibold rounded-lg">
+                  <Button
+                    variant="outline"
+                    className="px-8 py-3 border border-white bg-white text-gray-900 hover:bg-slate-100 hover:border-white font-semibold rounded-lg shadow-lg shadow-white/30"
+                  >
                     Join Beta List
                   </Button>
                 </a>
@@ -96,7 +104,7 @@ export default function Home() {
               </h2>
 
               <p className="text-lg text-gray-700 leading-relaxed mx-auto">
-                No gamification fluff. No endless scrolling. No fake streaks. Just deep, focused learning that actually prepares you for interviews and real-world thinking.
+                No fluff. No endless scrolling. No fake streaks. Just deep, focused learning that actually prepares you for interviews and real-world thinking.
               </p>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-8 pt-8">

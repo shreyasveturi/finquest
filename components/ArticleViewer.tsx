@@ -64,7 +64,7 @@ export default function ArticleViewer({
 
         return (
           <div key={p.id} className="relative">
-            <div className={`text-base text-slate-800 leading-relaxed mb-6 transition-all duration-300 ${shouldBlur ? 'blur-sm opacity-50 pointer-events-none select-none' : ''}`}>
+            <div className={`text-base text-gray-900 leading-relaxed mb-6 transition-all duration-300 ${shouldBlur ? 'blur-sm opacity-50 pointer-events-none select-none' : ''}`}>
               <AnnotatedParagraph text={p.text} keyTerms={keyTerms} usedTerms={usedTermsByParagraph.get(p.id)} />
             </div>
 
