@@ -11,38 +11,35 @@ export default function Home() {
       <NavBar />
       <main className="w-full bg-white">
         {/* Hero Section */}
-        <section className="relative w-full py-32 md:py-48 border-b border-gray-200 flex items-center overflow-hidden">
+        <section className="relative w-full min-h-[85vh] md:min-h-[80vh] border-b border-gray-200 flex items-center justify-center overflow-hidden">
           <div
             className="absolute inset-0 bg-[url('/demo-snapshot.svg')] bg-cover bg-center scale-105"
             aria-hidden
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/90 to-gray-900/75" aria-hidden />
-          <div className="relative max-w-3xl mx-auto px-6 w-full text-center text-white">
-            <div className="space-y-8">
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-gray-900/85 to-gray-900/60" aria-hidden />
+          <div className="relative max-w-2xl mx-auto px-8 md:px-12 w-full text-center text-white py-20">
+            <div className="space-y-10">
               {/* Main Heading */}
-              <h1 className="text-5xl md:text-6xl font-semibold leading-tight drop-shadow-sm">
+              <h1 className="font-serif text-[2.5rem] md:text-[3rem] font-semibold leading-[1.15] tracking-tight">
                 Turn finance news into interview-ready insight.
               </h1>
 
               {/* Subheading */}
-              <p className="text-lg md:text-xl text-gray-100 leading-relaxed mx-auto drop-shadow-sm">
-                Scio teaches you to truly understand markets — through minimalist, interactive articles powered by AI.
+              <p className="text-base md:text-lg text-neutral-300 leading-relaxed max-w-xl mx-auto">
+                Learn to truly understand markets through minimalist, AI-powered articles. No fluff. Just clarity.
               </p>
 
               {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 pt-6 justify-center items-center">
                 <Link href="/lesson">
-                  <Button variant="primary" className="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg shadow-blue-500/30">
+                  <button className="px-5 py-2.5 bg-neutral-800 hover:opacity-90 text-white font-medium rounded-lg transition-opacity">
                     Try Demo
-                  </Button>
+                  </button>
                 </Link>
                 <a href={GOOGLE_FORM} target="_blank" rel="noreferrer">
-                  <Button
-                    variant="outline"
-                    className="px-8 py-3 border border-white bg-white text-gray-900 hover:bg-slate-100 hover:border-white font-semibold rounded-lg shadow-lg shadow-white/30"
-                  >
+                  <button className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg border border-white/20 transition-colors">
                     Join Beta List
-                  </Button>
+                  </button>
                 </a>
               </div>
             </div>
