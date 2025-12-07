@@ -1,51 +1,55 @@
-/**
- * Interview Explain API Endpoint
- * 
- * Takes highlighted text and returns an interview-focused explanation.
- * Currently returns template responses. Ready for AI integration.
- * 
- * POST /api/explain
- * Body: { text: string, articleId: string }
- * Response: { explanation: string, talkingPoints: string[] }
- */
+const SYSTEM_PROMPT = `You are Scio, helping a finance candidate explain highlighted news text in interview terms.
+- Be concise (80-140 words), structured, and clear.
+- Cover: what it means, why it matters for markets/economy, and one interview-friendly talking point.
+- Use plain English, no fluff.
+- If the text is too short or unclear, ask for a clearer highlight.`;
 
 export async function POST(request: Request) {
   try {
-    const { text, articleId } = await request.json();
+    const { text, articleTitle } = await request.json();
 
-    if (!text || !articleId) {
-      return Response.json(
-        { error: 'Missing required fields: text, articleId' },
-        { status: 400 }
-      );
+    if (!text || typeof text !== 'string') {
+      return Response.json({ error: 'Missing text' }, { status: 400 });
     }
 
-    // Template response - ready for AI integration
-    const explanation = `When explaining "${text}" in an interview context, focus on:
-    
-1. Why this matters to financial decision-making
-2. Real-world examples and applications
-3. How it connects to broader economic trends
-4. Potential risks and opportunities
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return Response.json({ error: 'Missing OPENAI_API_KEY' }, { status: 500 });
+    }
 
-This will show you understand not just the definition, but the practical implications.`;
+    const prompt = `Article: ${articleTitle || 'Finance article'}\nHighlighted: ${text}\nExplain for an interview:`;
 
-    const talkingPoints = [
-      'This concept affects investment decisions',
-      'It influences market confidence and behavior',
-      'Understanding it is essential for financial literacy',
-      'It demonstrates knowledge of current events',
-    ];
+    const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 220,
+        temperature: 0.4,
+      }),
+    });
 
-    return Response.json(
-      { explanation, talkingPoints, model: 'placeholder' },
-      { status: 200 }
-    );
+    if (!upstream.ok) {
+      const detail = await upstream.text();
+      return Response.json({ error: 'Upstream error', detail }, { status: 500 });
+    }
+
+    const data = await upstream.json();
+    const explanation = data?.choices?.[0]?.message?.content?.trim();
+    if (!explanation) {
+      return Response.json({ error: 'No explanation returned' }, { status: 500 });
+    }
+
+    return Response.json({ explanation, model: 'gpt-4o-mini' }, { status: 200 });
   } catch (error) {
     console.error('Error in explain endpoint:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

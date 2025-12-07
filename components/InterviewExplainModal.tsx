@@ -8,6 +8,7 @@
 
 'use client';
 
+import { useEffect, useState } from 'react';
 import Modal from '@/components/Modal';
 
 interface InterviewExplainModalProps {
@@ -23,6 +24,43 @@ export default function InterviewExplainModal({
   selectedText,
   articleTitle = 'Article',
 }: InterviewExplainModalProps) {
+  const [explanation, setExplanation] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isOpen || !selectedText) return;
+
+    const controller = new AbortController();
+    const run = async () => {
+      setLoading(true);
+      setError('');
+      setExplanation('');
+      try {
+        const res = await fetch('/api/explain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: selectedText, articleTitle }),
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const detail = await res.json().catch(() => ({}));
+          throw new Error(detail?.error || 'Failed to fetch explanation');
+        }
+        const data = await res.json();
+        setExplanation(data.explanation || '');
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+        setError(err?.message || 'Something went wrong.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+    return () => controller.abort();
+  }, [isOpen, selectedText, articleTitle]);
+
   if (!isOpen) return null;
 
   return (
@@ -37,24 +75,13 @@ export default function InterviewExplainModal({
 
         <div className="bg-blue-50 p-4 rounded border border-blue-200">
           <p className="text-xs font-medium text-blue-600 mb-2">💡 HOW TO EXPLAIN THIS</p>
-          <div className="text-sm text-gray-700 space-y-2">
-            <p>
-              When interviewing, explain this concept by connecting it to:
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>Why this matters in financial decision-making</li>
-              <li>Real-world applications and examples</li>
-              <li>How it connects to broader economic trends</li>
-              <li>What risks or opportunities it presents</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
-          <p className="text-xs font-medium text-yellow-700 mb-2">💬 INTERVIEW TALKING POINT</p>
-          <p className="text-sm text-gray-700">
-            "Based on {articleTitle}, when this comes up in conversations, you should be able to explain why it's important and how it affects financial planning. Focus on the practical implications rather than just the definition."
-          </p>
+          {loading && <p className="text-sm text-gray-700">Generating...</p>}
+          {!loading && error && (
+            <p className="text-sm text-rose-700">{error}</p>
+          )}
+          {!loading && !error && explanation && (
+            <p className="text-sm text-gray-800 whitespace-pre-line">{explanation}</p>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
