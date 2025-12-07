@@ -147,6 +147,33 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Differentiator Section */}
+        <section className="w-full py-20 md:py-24 bg-white border-b border-gray-200">
+          <div className="max-w-5xl mx-auto px-6 md:px-10">
+            <div className="space-y-10">
+              <div className="text-center space-y-3">
+                <h2 className="text-3xl font-semibold text-gray-900">Why Scio feels different</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 space-y-2">
+                  <h3 className="text-xl font-semibold text-gray-900">AI inline explanations</h3>
+                  <p className="text-base text-gray-700 leading-relaxed">
+                    Highlight any sentence and Scio explains what it means and why it matters — in clear, interview-ready language.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 space-y-2">
+                  <h3 className="text-xl font-semibold text-gray-900">From reading to reasoning</h3>
+                  <p className="text-base text-gray-700 leading-relaxed">
+                    Scio doesn’t just quiz definitions. It trains you to talk through market moves, policy changes, and company news like an analyst.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Final CTA Section */}
         <section className="w-full py-24 md:py-32">
           <div className="max-w-3xl mx-auto px-6 text-center">
