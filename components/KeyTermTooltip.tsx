@@ -24,14 +24,24 @@ export default function KeyTermTooltip({ term }: { term: KeyTerm }) {
       return;
     }
     const rect = ref.current.getBoundingClientRect();
-    const tooltipWidth = 288; // w-72
-    const margin = 8;
+    const tooltipWidth = 320;
+    const margin = 16;
     let left = rect.left;
-    // try keep inside viewport
+    
+    // Keep inside viewport horizontally
     if (left + tooltipWidth + margin > window.innerWidth) {
       left = Math.max(margin, window.innerWidth - tooltipWidth - margin);
     }
-    const top = rect.bottom + 8;
+    
+    // Position below the term with some spacing
+    let top = rect.bottom + 12;
+    
+    // If tooltip would go below viewport, position above instead
+    const tooltipHeight = 200; // approximate
+    if (top + tooltipHeight + margin > window.innerHeight) {
+      top = rect.top - tooltipHeight - 12;
+    }
+    
     setPos({ left, top });
     setOpen(true);
   }
@@ -59,11 +69,12 @@ export default function KeyTermTooltip({ term }: { term: KeyTerm }) {
               style={{ left: pos.left, top: pos.top }}
               onMouseEnter={() => setOpen(true)}
               onMouseLeave={() => setOpen(false)}
-              className="fixed z-50 w-72 bg-white border border-slate-200 shadow-lg rounded-lg p-3 text-sm"
+              className="fixed z-50 w-80 max-w-[320px] bg-white border border-neutral-200 shadow-md rounded-xl p-4 animate-in fade-in duration-150"
             >
-              <div className="font-semibold text-slate-900">{term.term}</div>
-              <div className="text-slate-700 mt-2">{term.friendlyDefinition}</div>
-              <div className="text-slate-600 mt-2 italic text-xs">💡 Why it matters: {term.whyItMatters}</div>
+              <div className="text-xs uppercase tracking-wide text-neutral-500 font-semibold mb-2">Explanation</div>
+              <div className="font-semibold text-neutral-900 mb-2">{term.term}</div>
+              <div className="text-sm text-neutral-700 leading-relaxed mb-3">{term.friendlyDefinition}</div>
+              <div className="text-sm text-neutral-600 leading-relaxed italic">💡 Why it matters: {term.whyItMatters}</div>
             </div>,
             document.body,
           )
