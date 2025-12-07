@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Merriweather } from 'next/font/google';
 import './globals.css';
 import { GOOGLE_FORM } from '../content/rachelReevesBudget';
 import Footer from '../components/Footer';
@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const merriweather = Merriweather({
+  variable: '--font-merriweather',
+  subsets: ['latin'],
+  weight: ['300', '400', '700'],
+});
+
 export const metadata: Metadata = {
   title: 'Scio — Gamified finance-news learning',
   description:
@@ -24,7 +30,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-slate-50 text-slate-900 flex flex-col w-full`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${merriweather.variable} antialiased min-h-screen bg-white text-neutral-900 flex flex-col w-full`}>
         <main className="flex-1 w-full">{children}</main>
         <Footer />
       </body>
