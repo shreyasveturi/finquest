@@ -25,14 +25,13 @@ body {
 
 /* Typography System — FT × Notion */
 
-/* H1: Editorial serif headings */
+/* H1: Editorial serif headings (only set font styles, not color to allow Tailwind overrides) */
 h1, .heading-1 {
   font-family: var(--font-merriweather), Georgia, serif;
   font-size: 2.5rem;
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--neutral-900);
 }
 
 @media (min-width: 768px) {
@@ -47,12 +46,10 @@ h2, .heading-2 {
   font-size: 1.5rem;
   font-weight: 600;
   line-height: 1.3;
-  color: var(--neutral-900);
 }
 
-/* Body text */
-p, .body-text {
-  color: var(--neutral-800);
+/* Body text (line-height only, allow color overrides) */
+.body-text {
   line-height: 1.7;
 }
 

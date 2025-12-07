@@ -31,9 +31,9 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-slate-800 pt-8 text-sm">
-          <p className="mb-2">© 2025 Scio. Educational tool for learning market concepts.</p>
-          <p className="text-xs">Not affiliated with the Financial Times or UK Government. For educational use only.</p>
+        <div className="border-t border-slate-800 pt-8 text-sm text-slate-400">
+          <p className="mb-2 text-slate-400">© 2025 Scio. Educational tool for learning market concepts.</p>
+          <p className="text-xs text-slate-400">Not affiliated with the Financial Times or UK Government. For educational use only.</p>
         </div>
       </div>
     </footer>
