@@ -115,7 +115,7 @@ export default function LessonPage() {
     <>
       <div className="w-full bg-white min-h-screen">
         {/* Sticky XP Bar */}
-        <div className="w-full bg-white border-b border-gray-200 sticky top-16 z-30 backdrop-blur-sm bg-white/95">
+        <div className="w-full bg-white border-b border-gray-200">
           <div className="max-w-3xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm font-medium text-gray-700">{level.name}</div>
