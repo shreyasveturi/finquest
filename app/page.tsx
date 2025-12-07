@@ -25,6 +25,13 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-gray-900/85 to-gray-900/60" aria-hidden />
           <div className="relative max-w-2xl mx-auto px-8 md:px-12 w-full text-center py-20">
             <div className="space-y-10">
+              {/* Pill */}
+              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 text-xs font-medium text-neutral-700 transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100 delay-50' : 'opacity-0'}`}>
+                <span>New</span>
+                <span>•</span>
+                <span>AI inline explanations</span>
+              </div>
+
               {/* Main Heading */}
               <h1 className={`font-serif text-[2.5rem] md:text-[3rem] font-semibold leading-[1.15] tracking-tight text-white transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
                 Turn finance news into interview-ready insight.
@@ -32,14 +39,14 @@ export default function Home() {
 
               {/* Subheading */}
               <p className={`text-base md:text-lg text-white/80 leading-relaxed max-w-xl mx-auto transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100 delay-100' : 'opacity-0'}`}>
-                Learn to truly understand markets through minimalist, AI-powered articles. No fluff. Just clarity.
+                Scio is an AI-powered reader that explains finance articles inline — so you can understand any piece like an analyst, not a tourist.
               </p>
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3 pt-6 justify-center items-center">
                 <Link href="/lesson">
                   <button className="px-5 py-2.5 bg-neutral-800 hover:opacity-90 text-white font-medium rounded-lg transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform">
-                    Try Demo
+                    See AI explanations
                   </button>
                 </Link>
                 <a href={GOOGLE_FORM} target="_blank" rel="noreferrer">
