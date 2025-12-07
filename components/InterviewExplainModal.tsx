@@ -49,15 +49,22 @@ export default function InterviewExplainModal({
         console.log('[Explain Modal] Response status:', res.status);
         if (!res.ok) {
           const detail = await res.json().catch(() => ({}));
-          console.error('[Explain Modal] API error:', detail);
-          throw new Error(detail?.error || 'Failed to fetch explanation');
+          console.error('[Explain Modal] API error response:', detail);
+          throw new Error(detail?.error || `HTTP ${res.status}`);
         }
         const data = await res.json();
+        console.log('[Explain Modal] Full response:', data);
         console.log('[Explain Modal] Got explanation:', data.explanation);
+        if (!data.explanation) {
+          console.warn('[Explain Modal] Empty explanation in response');
+        }
         setExplanation(data.explanation || '');
       } catch (err: any) {
-        if (err?.name === 'AbortError') return;
-        console.error('[Explain Modal] Error:', err?.message);
+        if (err?.name === 'AbortError') {
+          console.log('[Explain Modal] Request aborted');
+          return;
+        }
+        console.error('[Explain Modal] Full error:', err);
         setError(err?.message || 'Something went wrong.');
       } finally {
         setLoading(false);
