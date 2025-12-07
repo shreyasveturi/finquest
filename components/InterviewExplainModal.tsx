@@ -31,26 +31,33 @@ export default function InterviewExplainModal({
   useEffect(() => {
     if (!isOpen || !selectedText) return;
 
+    console.log('[Explain Modal] Opening with text:', selectedText);
+
     const controller = new AbortController();
     const run = async () => {
       setLoading(true);
       setError('');
       setExplanation('');
       try {
+        console.log('[Explain Modal] Calling /api/explain...');
         const res = await fetch('/api/explain', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: selectedText, articleTitle }),
           signal: controller.signal,
         });
+        console.log('[Explain Modal] Response status:', res.status);
         if (!res.ok) {
           const detail = await res.json().catch(() => ({}));
+          console.error('[Explain Modal] API error:', detail);
           throw new Error(detail?.error || 'Failed to fetch explanation');
         }
         const data = await res.json();
+        console.log('[Explain Modal] Got explanation:', data.explanation);
         setExplanation(data.explanation || '');
       } catch (err: any) {
         if (err?.name === 'AbortError') return;
+        console.error('[Explain Modal] Error:', err?.message);
         setError(err?.message || 'Something went wrong.');
       } finally {
         setLoading(false);
