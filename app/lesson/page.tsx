@@ -16,7 +16,6 @@ import {
   ARTICLE_URL,
   GOOGLE_FORM,
 } from '../../content/rachelReevesBudget';
-import NavBar from '../../components/NavBar';
 
 
 function getLevel(xp: number) {
@@ -114,7 +113,6 @@ export default function LessonPage() {
 
   return (
     <>
-      <NavBar />
       <div className="w-full bg-white min-h-screen">
         {/* Sticky XP Bar */}
         <div className="w-full bg-white border-b border-gray-200 sticky top-16 z-30 backdrop-blur-sm bg-white/95">

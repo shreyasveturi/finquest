@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Geist, Geist_Mono, Merriweather } from 'next/font/google';
 import './globals.css';
-import { GOOGLE_FORM } from '../content/rachelReevesBudget';
 import Footer from '../components/Footer';
+import NavBar from '../components/NavBar';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -31,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} ${merriweather.variable} antialiased min-h-screen bg-white text-neutral-900 flex flex-col w-full`}>
+        <NavBar />
         <main className="flex-1 w-full">{children}</main>
         <Footer />
       </body>

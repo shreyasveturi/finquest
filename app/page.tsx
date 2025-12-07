@@ -1,14 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import NavBar from '../components/NavBar';
 import Button from '../components/Button';
 import { GOOGLE_FORM } from '../content/rachelReevesBudget';
 
 export default function Home() {
   return (
     <>
-      <NavBar />
       <main className="w-full bg-white">
         {/* Hero Section */}
         <section className="relative w-full min-h-[85vh] md:min-h-[80vh] border-b border-gray-200 flex items-center justify-center overflow-hidden">

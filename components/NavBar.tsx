@@ -1,34 +1,26 @@
 import Link from 'next/link';
-import { GOOGLE_FORM } from '../content/rachelReevesBudget';
 
 export default function NavBar() {
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur border-b border-slate-200">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Left: Logo */}
-        <Link href="/" className="text-lg font-semibold text-slate-900">
+    <nav className="w-full bg-white border-b border-neutral-200">
+      <div className="max-w-5xl mx-auto px-6 md:px-10 py-3 md:py-4 flex items-center justify-between gap-4 flex-wrap">
+        <Link href="/" className="font-serif text-lg md:text-xl font-semibold text-neutral-900">
           Scio
         </Link>
 
-        {/* Right: Nav Links + CTA */}
-        <div className="flex items-center gap-6">
-          <div className="hidden sm:flex gap-6">
-            <Link href="/lesson" className="text-sm text-slate-700 hover:text-slate-900 transition">
-              Demo
-            </Link>
-            <Link href="/about" className="text-sm text-slate-700 hover:text-slate-900 transition">
-              About
-            </Link>
-          </div>
-
-          <a
-            href={GOOGLE_FORM}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+        <div className="flex items-center gap-4 md:gap-6 flex-wrap">
+          <Link
+            href="/#about"
+            className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 hover:underline underline-offset-4 transition"
           >
-            Join the beta
-          </a>
+            About
+          </Link>
+          <Link
+            href="/lesson"
+            className="text-sm md:text-base text-white bg-neutral-900 px-4 py-1.5 rounded-lg hover:opacity-90 transition"
+          >
+            Try lesson
+          </Link>
         </div>
       </div>
     </nav>
