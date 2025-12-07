@@ -20,7 +20,7 @@ export default function NavBar() {
             href="/lesson"
             className="text-sm md:text-base text-white bg-neutral-900 px-4 py-1.5 rounded-lg hover:opacity-90 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
           >
-            Try lesson
+            Try Demo
           </Link>
           <a
             href={GOOGLE_FORM}
@@ -28,7 +28,7 @@ export default function NavBar() {
             rel="noreferrer"
             className="text-sm md:text-base bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
           >
-            Join beta
+            Join Beta
           </a>
         </div>
       </div>

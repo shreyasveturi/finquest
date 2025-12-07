@@ -46,7 +46,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-3 pt-6 justify-center items-center">
                 <Link href="/lesson">
                   <button className="px-5 py-2.5 bg-neutral-800 hover:opacity-90 text-white font-medium rounded-lg transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform">
-                    See AI explanations
+                    Try Demo
                   </button>
                 </Link>
                 <a href={GOOGLE_FORM} target="_blank" rel="noreferrer">
@@ -210,12 +210,12 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/lesson">
-                <Button variant="primary" className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-base">
+                <Button variant="primary" className="px-8 py-3 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg text-base">
                   Try Demo
                 </Button>
               </Link>
               <a href={GOOGLE_FORM} target="_blank" rel="noreferrer">
-                <Button variant="outline" className="px-8 py-3 border border-gray-300 text-gray-900 hover:bg-gray-50 font-semibold rounded-lg text-base">
+                <Button variant="primary" className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-base">
                   Join Beta List
                 </Button>
               </a>
