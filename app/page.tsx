@@ -189,7 +189,7 @@ export default function Home() {
                 <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 space-y-2">
                   <h3 className="text-xl font-semibold text-gray-900">From reading to reasoning</h3>
                   <p className="text-base text-gray-700 leading-relaxed">
-                    Scio doesn’t just quiz definitions. It trains you to talk through market moves, policy changes, and company news like an analyst.
+                    Scio doesn't just teach concepts. It trains you to talk about markets and companies the way interviewers want to hear.
                   </p>
                 </div>
               </div>
