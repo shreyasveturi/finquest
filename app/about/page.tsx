@@ -28,20 +28,23 @@ export default function About() {
           </div>
         </section>
 
-        {/* AI Demo Section */}
+        {/* Checkpoints Demo Section */}
         <section className="max-w-5xl mx-auto px-6 md:px-10 py-16 md:py-20 space-y-6">
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-3">
-              See Scio's AI explain the news in real time
+              See Scio's checkpoints in action
             </h2>
-            <p className="text-lg text-gray-600">
-              Highlight a sentence → get instant, interview-ready insight.
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Reading alone isn't enough. After each key idea, Scio hits you with a checkpoint — a quick, focused question that forces you to explain what's going on, not just skim it.
+            </p>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mt-4">
+              Watch how a user answers a checkpoint and gets instant, interview-style feedback.
             </p>
           </div>
           
           <div className="aspect-video w-full max-w-3xl mx-auto rounded-2xl border border-neutral-200 shadow-sm overflow-hidden bg-black">
             <video
-              src="/Scio.mp4"
+              src="/Checkpoints.mp4"
               autoPlay
               loop
               muted
