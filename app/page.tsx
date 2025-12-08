@@ -39,7 +39,7 @@ export default function Home() {
 
               {/* Subheading */}
               <p className={`text-base md:text-lg text-white/80 leading-relaxed max-w-xl mx-auto transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100 delay-100' : 'opacity-0'}`}>
-                Scio is an AI-powered reader that explains finance articles inline — so you can understand any piece like an analyst, not a tourist.
+                Scio is the smarter way to learn finance — an AI platform that teaches through real articles, real markets, and real explanations.
               </p>
 
               {/* CTAs */}
