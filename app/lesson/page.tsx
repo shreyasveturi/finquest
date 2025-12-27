@@ -16,6 +16,7 @@ import {
   ARTICLE_URL,
   GOOGLE_FORM,
 } from '../../content/rachelReevesBudget';
+import type { CheckpointFeedback } from '../../types/checkpoint';
 
 
 function getLevel(xp: number) {
@@ -36,6 +37,9 @@ export default function LessonPage() {
   const [explainSelection, setExplainSelection] = useState('');
   const [showExplainModal, setShowExplainModal] = useState(false);
   const [predictionChoice, setPredictionChoice] = useState('');
+  const [feedback, setFeedback] = useState<CheckpointFeedback | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(false);
 
   useEffect(() => {
     try {
@@ -70,6 +74,9 @@ export default function LessonPage() {
     setActiveCheckpoint(id);
     setAnswer('');
     setSubmittedFor(null);
+    setFeedback(null);
+    setFeedbackLoading(false);
+    setFeedbackError(false);
   }
 
   function revealHint(id: string) {
@@ -78,7 +85,7 @@ export default function LessonPage() {
     setXp((v) => Math.max(0, v - 5));
   }
 
-  function submitAnswer(id: string) {
+  async function submitAnswer(id: string) {
     const cp = CHECKPOINTS.find((c) => c.id === id);
     if (!cp) return;
 
@@ -98,12 +105,45 @@ export default function LessonPage() {
       }
     }
     setSubmittedFor(id);
+
+    // Fetch GPT feedback
+    setFeedbackLoading(true);
+    setFeedbackError(false);
+    setFeedback(null);
+
+    try {
+      const response = await fetch('/api/checkpoint-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: cp.prompt,
+          userAnswer: trimmed,
+          context: cp.helperText || '',
+          articleTitle: ARTICLE_TITLE,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch feedback');
+      }
+
+      const data: CheckpointFeedback = await response.json();
+      setFeedback(data);
+    } catch (error) {
+      console.error('Error fetching checkpoint feedback:', error);
+      setFeedbackError(true);
+    } finally {
+      setFeedbackLoading(false);
+    }
   }
 
   function closeCheckpointModal() {
     setActiveCheckpoint(null);
     setAnswer('');
     setSubmittedFor(null);
+    setFeedback(null);
+    setFeedbackLoading(false);
+    setFeedbackError(false);
   }
 
   const level = getLevel(xp);
@@ -267,23 +307,134 @@ export default function LessonPage() {
 
                 {submittedFor === cp.id && (
                   <div className="space-y-4">
-                    <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg">
-                      <div className="font-semibold text-emerald-900 mb-2">✓ Feedback</div>
-                      <p className="text-emerald-800 text-sm">
-                        {answer.trim().length < 30
-                          ? 'Try to go deeper: mention at least one of [tax revenues / productivity / market confidence].'
-                          : 'Great effort! Compare your answer to the expert response below.'}
-                      </p>
-                    </div>
+                    {feedbackLoading && (
+                      <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg text-center">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3"></div>
+                        <p className="text-blue-800 font-medium">Generating interview feedback...</p>
+                      </div>
+                    )}
 
-                    <div className="bg-gray-100 border border-gray-300 p-4 rounded-lg">
-                      <div className="font-semibold text-gray-900 mb-2">Expert Response</div>
-                      <p className="text-gray-800 text-sm italic">{cp.modelAnswer}</p>
-                    </div>
+                    {feedbackError && !feedbackLoading && (
+                      <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                        <div className="font-semibold text-amber-900 mb-2">⚠️ Feedback unavailable</div>
+                        <p className="text-amber-800 text-sm mb-3">
+                          We couldn't generate feedback right now. Here are some general tips:
+                        </p>
+                        <ul className="text-amber-800 text-sm space-y-1 list-disc list-inside">
+                          <li>Structure your answer clearly with a logical flow</li>
+                          <li>Link your points to market or policy implications</li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {feedback && !feedbackLoading && (
+                      <>
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 p-5 rounded-lg">
+                          <div className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
+                            🎯 Interview Feedback
+                          </div>
+
+                          {/* Scores */}
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="text-xs text-gray-600 mb-1">Structure</div>
+                              <div className="text-2xl font-bold text-blue-600">{feedback.scores.structure}/10</div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="text-xs text-gray-600 mb-1">Commercial Awareness</div>
+                              <div className="text-2xl font-bold text-blue-600">{feedback.scores.commercialAwareness}/10</div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="text-xs text-gray-600 mb-1">Clarity</div>
+                              <div className="text-2xl font-bold text-blue-600">{feedback.scores.clarity}/10</div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="text-xs text-gray-600 mb-1">Specificity</div>
+                              <div className="text-2xl font-bold text-blue-600">{feedback.scores.specificity}/10</div>
+                            </div>
+                          </div>
+
+                          {/* Strengths */}
+                          {feedback.strengths.length > 0 && (
+                            <div className="mb-4">
+                              <div className="font-semibold text-emerald-900 mb-2 flex items-center gap-2">
+                                <span>✓</span> Strengths
+                              </div>
+                              <ul className="text-sm text-gray-800 space-y-1">
+                                {feedback.strengths.map((s, i) => (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="text-emerald-600 mt-0.5">•</span>
+                                    <span>{s}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Improvements */}
+                          {feedback.improvements.length > 0 && (
+                            <div className="mb-4">
+                              <div className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
+                                <span>↑</span> Improvements
+                              </div>
+                              <ul className="text-sm text-gray-800 space-y-1">
+                                {feedback.improvements.map((imp, i) => (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="text-amber-600 mt-0.5">•</span>
+                                    <span>{imp}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Missing Links */}
+                          {feedback.missingLinks.length > 0 && (
+                            <div className="mb-4">
+                              <div className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                                <span>🔗</span> Missing Links
+                              </div>
+                              <ul className="text-sm text-gray-800 space-y-1">
+                                {feedback.missingLinks.map((link, i) => (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="text-purple-600 mt-0.5">•</span>
+                                    <span>{link}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Better Answer */}
+                        <div className="bg-gray-50 border border-gray-300 p-4 rounded-lg">
+                          <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <span>💡</span> Better Answer (Suggested)
+                          </div>
+                          <p className="text-gray-800 text-sm leading-relaxed">{feedback.betterAnswer}</p>
+                        </div>
+
+                        {/* Follow-ups */}
+                        {feedback.followUps.length > 0 && (
+                          <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-lg">
+                            <div className="font-semibold text-indigo-900 mb-2">🤔 Likely Follow-ups</div>
+                            <ul className="text-sm text-indigo-800 space-y-1">
+                              {feedback.followUps.map((q, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="text-indigo-600 mt-0.5">•</span>
+                                  <span>{q}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
 
                     <button
                       onClick={closeCheckpointModal}
                       className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 font-semibold text-lg transition-colors"
+                      disabled={feedbackLoading}
                     >
                       Continue Reading →
                     </button>
