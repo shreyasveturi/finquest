@@ -9,11 +9,7 @@ export const ARTICLE_TITLE = "Rachel Reeves' Budget raises UK tax take to all-ti
 export const ARTICLE_SOURCE = "Financial Times, November 26 2025";
 export const ARTICLE_URL = "https://www.ft.com/content/f8a8ad84-e351-4c7b-aa90-e5ce2bf665b4";
 
-export type ArticleParagraph = {
-  id: string;
-  text: string;
-  checkpointId?: string;
-};
+import type { ArticleParagraph, KeyTerm, Checkpoint, QuestionType } from '@/types/lesson';
 
 export const ARTICLE_PARAGRAPHS: ArticleParagraph[] = [
   {
@@ -80,13 +76,6 @@ export const ARTICLE_PARAGRAPHS: ArticleParagraph[] = [
     text: 'It represents a breach of the chancellor\'s subsequent vow not to come back for more taxes and will pile pressure on an economy that has been struggling to gain momentum. UK inflation is forecast to average 3.5 per cent in 2025, up from the 3.2 per cent expected in March, according to the OBR. Inflation is set to decline to 2.5 per cent in 2026, compared with 2.1 per cent forecast in the spring.',
   },
 ];
-
-export type KeyTerm = {
-  id: string;
-  term: string;
-  friendlyDefinition: string;
-  whyItMatters: string;
-};
 
 export const KEY_TERMS: KeyTerm[] = [
   {
@@ -318,20 +307,6 @@ export const KEY_TERMS: KeyTerm[] = [
     whyItMatters: 'Shapes interest rates, wage talks, and real income expectations.',
   },
 ];
-
-export type QuestionType = 'shortText' | 'thisOrThat';
-
-export type Checkpoint = {
-  id: string;
-  title: string;
-  paragraphId: string;
-  prompt: string;
-  helperText?: string;
-  questionType: QuestionType;
-  choices?: string[];
-  modelAnswer: string;
-  hint: string;
-};
 
 export const CHECKPOINTS: Checkpoint[] = [
   {

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-import type { KeyTerm } from '../content/rachelReevesBudget';
+import type { KeyTerm } from '@/types/lesson';
 
 export default function KeyTermTooltip({ term }: { term: KeyTerm }) {
   const [open, setOpen] = useState(false);

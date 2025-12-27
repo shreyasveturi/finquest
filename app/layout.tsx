@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Geist, Geist_Mono, Merriweather } from 'next/font/google';
 import './globals.css';
 import Footer from '../components/Footer';

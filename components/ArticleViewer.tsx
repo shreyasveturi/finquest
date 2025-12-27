@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import AnnotatedParagraph from './AnnotatedParagraph';
-import type { ArticleParagraph, KeyTerm, Checkpoint } from '../content/rachelReevesBudget';
+import type { ArticleParagraph, KeyTerm, Checkpoint, ReasoningLinksBlock } from '@/types/lesson';
 
 export default function ArticleViewer({
   paragraphs,
@@ -9,12 +9,16 @@ export default function ArticleViewer({
   checkpoints,
   onStartCheckpoint,
   completedCheckpoints = [],
+  reasoningLinks,
+  onOpenReasoningLinks,
 }: {
   paragraphs: ArticleParagraph[];
   keyTerms: KeyTerm[];
   checkpoints: Checkpoint[];
   onStartCheckpoint: (id: string) => void;
   completedCheckpoints?: string[];
+  reasoningLinks?: ReasoningLinksBlock[];
+  onOpenReasoningLinks?: (block: ReasoningLinksBlock) => void;
 }) {
   // Find which checkpoint index we're currently on
   const nextCheckpointIndex = checkpoints.findIndex((c) => !completedCheckpoints.includes(c.id));
@@ -61,12 +65,32 @@ export default function ArticleViewer({
         
         // Blur all paragraphs after the first incomplete checkpoint
         const shouldBlur = firstIncompleteCheckpointParagraphIndex >= 0 && idx > firstIncompleteCheckpointParagraphIndex;
+        const reasoningBlock = reasoningLinks?.find((r) => r.paragraphId === p.id);
 
         return (
           <div key={p.id} className="relative mb-6">
             <div className={`text-base text-gray-900 leading-[1.75] transition-all duration-300 ${shouldBlur ? 'blur-sm opacity-50 pointer-events-none select-none' : ''}`}>
               <AnnotatedParagraph text={p.text} keyTerms={keyTerms} usedTerms={usedTermsByParagraph.get(p.id)} />
             </div>
+
+            {reasoningLinks && onOpenReasoningLinks && reasoningBlock && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (shouldBlur) return;
+                    onOpenReasoningLinks(reasoningBlock);
+                  }}
+                  className={`text-sm underline decoration-dotted underline-offset-4 transition-colors ${
+                    shouldBlur
+                      ? 'text-blue-700/50 blur-[1px] opacity-60 pointer-events-none select-none'
+                      : 'text-blue-700 hover:text-blue-800'
+                  }`}
+                >
+                  Reasoning links
+                </button>
+              </div>
+            )}
 
             {p.checkpointId && (
               <div className="mt-6">

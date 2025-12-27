@@ -44,7 +44,7 @@ export default function Home() {
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3 pt-6 justify-center items-center">
-                <Link href="/lesson">
+                <Link href="/demo">
                   <button className="px-5 py-2.5 bg-neutral-800 hover:opacity-90 text-white font-medium rounded-lg transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform">
                     Try Demo
                   </button>
@@ -209,7 +209,7 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/lesson">
+              <Link href="/demo">
                 <Button variant="primary" className="px-8 py-3 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg text-base">
                   Try Demo
                 </Button>

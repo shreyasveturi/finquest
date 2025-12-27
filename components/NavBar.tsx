@@ -17,7 +17,7 @@ export default function NavBar() {
             About
           </Link>
           <Link
-            href="/lesson"
+            href="/demo"
             className="text-sm md:text-base text-white bg-neutral-900 px-4 py-1.5 rounded-lg hover:opacity-90 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
           >
             Try Demo

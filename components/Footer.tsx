@@ -12,7 +12,7 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold text-sm mb-4">Product</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/lesson" className="hover:text-white transition">Try Demo</a></li>
+              <li><a href="/demo" className="hover:text-white transition">Try Demo</a></li>
               <li><a href="https://forms.gle/zh4w6jL81stBqf8q6" target="_blank" rel="noreferrer" className="hover:text-white transition">Join Beta</a></li>
             </ul>
           </div>
@@ -20,7 +20,6 @@ export default function Footer() {
             <h4 className="text-white font-semibold text-sm mb-4">Company</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="/about" className="hover:text-white transition">About</a></li>
-              <li><a href="https://www.ft.com/content/f8a8ad84-e351-4c7b-aa90-e5ce2bf665b4" target="_blank" rel="noreferrer" className="hover:text-white transition">FT Attribution</a></li>
             </ul>
           </div>
           <div>

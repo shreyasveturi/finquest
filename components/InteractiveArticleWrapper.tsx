@@ -67,15 +67,17 @@ export default function InteractiveArticleWrapper({
     if (text.length > 0) {
       setSelectedText(text);
 
-      // Get selection position relative to viewport
+      // Get selection position relative to the wrapper so it stays anchored when scrolling
       const range = selection?.getRangeAt(0);
-      if (range) {
+      if (range && wrapperRef.current) {
         const rect = range.getBoundingClientRect();
-        setSelectionPos({
-          top: rect.top - 40,
-          left: rect.left,
-        });
-        console.log('[InteractiveArticleWrapper] Selection pos set:', { top: rect.top - 40, left: rect.left });
+        const wrapperRect = wrapperRef.current.getBoundingClientRect();
+
+        const top = rect.top - wrapperRect.top - 40; // offset above selection
+        const left = rect.left - wrapperRect.left;
+
+        setSelectionPos({ top, left });
+        console.log('[InteractiveArticleWrapper] Selection pos set:', { top, left });
       }
     } else {
       setSelectedText('');
@@ -109,7 +111,7 @@ export default function InteractiveArticleWrapper({
       {/* Selection Action Button */}
       {selectedText && selectionPos && (
         <div
-          className="fixed z-50 bg-blue-600 text-white text-xs font-medium py-2 px-3 rounded shadow-lg hover:bg-blue-700 cursor-pointer transition-colors"
+          className="absolute z-50 bg-blue-600 text-white text-xs font-medium py-2 px-3 rounded shadow-lg hover:bg-blue-700 cursor-pointer transition-colors"
           style={{
             top: `${selectionPos.top}px`,
             left: `${selectionPos.left}px`,

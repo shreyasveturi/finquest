@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import KeyTermTooltip from './KeyTermTooltip';
-import type { KeyTerm } from '../content/rachelReevesBudget';
+import type { KeyTerm } from '@/types/lesson';
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
