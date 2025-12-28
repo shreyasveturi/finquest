@@ -49,6 +49,14 @@ export type Lesson = {
   keyTerms: KeyTerm[];
   checkpoints: Checkpoint[];
   reasoningLinks?: ReasoningLinksBlock[];
+  expertReasoning?: {
+    shock: string;
+    channel: string;
+    impact: string;
+    channels: string[];
+    winners: string[];
+    losers: string[];
+  };
   predictionChoices?: { id: string; label: string }[];
   predictionCorrectId?: string;
 };

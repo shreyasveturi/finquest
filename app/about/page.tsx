@@ -11,46 +11,83 @@ export default function About() {
         <section className="w-full py-16 md:py-24 border-b border-gray-200">
           <div className="max-w-3xl mx-auto px-6">
             <h1 className="text-5xl md:text-6xl font-semibold text-gray-900 mb-6">
-              Why Scio
+              Why Scio exists
             </h1>
             <p className="text-lg text-gray-700 leading-relaxed mb-4">
-              Finance candidates consume news without understanding implications. They memorize terms but can’t explain market impact — the exact skill interviews test.
-            </p>
-            <p className="text-lg text-gray-700 leading-relaxed mb-4">
-              Scio turns real finance articles into structured, interactive learning.
-            </p>
-            <p className="text-lg text-gray-700 leading-relaxed mb-4">
-              At the core is an AI engine that explains any sentence inline and ties it back to market impact.
+              Finance interviews test your ability to think, not your ability to memorise answers. Yet most learning tools — especially AI — train the opposite.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed">
-              Highlight terms for instant explanations. Answer implication-focused questions. Build the ability to discuss markets with clarity and confidence.
+              Scio is built on a simple principle: <strong>attempt first, feedback second.</strong>
             </p>
           </div>
         </section>
 
-        {/* Checkpoints Demo Section */}
-        <section className="max-w-5xl mx-auto px-6 md:px-10 py-16 md:py-20 space-y-6">
-          <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-3">
-              See Scio's checkpoints in action
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Reading alone isn't enough. After each key idea, Scio hits you with a checkpoint — a quick, focused question that forces you to explain what's going on, not just skim it.
-            </p>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto mt-4">
-              Watch how a user answers a checkpoint and gets instant, interview-style feedback.
-            </p>
+        {/* The Problem Section */}
+        <section className="w-full py-16 md:py-20 bg-gray-50 border-b border-gray-200">
+          <div className="max-w-3xl mx-auto px-6">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-8">The Problem</h2>
+            
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Critical thinking is eroding</h3>
+                <p className="text-gray-700">
+                  GenAI tools like ChatGPT excel at generating answers instantly. This is convenient — but it's broken the learning loop. Candidates copy-paste instead of reason. They memorise opinions instead of building arguments. They trade thinking for speed.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Interviews punish this</h3>
+                <p className="text-gray-700">
+                  Finance interviews don't test your ability to regurgitate takes. They test your ability to:
+                </p>
+                <ul className="mt-2 ml-4 space-y-1 text-gray-700">
+                  <li>• Map second-order effects (shock → mechanism → impact)</li>
+                  <li>• Weigh trade-offs and identify winners/losers</li>
+                  <li>• Articulate uncertainty and conditions</li>
+                  <li>• Defend your reasoning under pressure</li>
+                </ul>
+                <p className="text-gray-700 mt-3">
+                  If you've only consumed answers, you'll freeze under questioning.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Scio's antidote</h3>
+                <p className="text-gray-700">
+                  Force yourself to think before you see answers. Build reasoning chains. Compare your logic to expert analysis. Fail fast, learn deeply. This is how interview-ready thinking develops.
+                </p>
+              </div>
+            </div>
           </div>
-          
-          <div className="aspect-video w-full max-w-3xl mx-auto rounded-2xl border border-neutral-200 shadow-sm overflow-hidden bg-black">
-            <video
-              src="/Checkpoints.mp4"
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="h-full w-full object-cover"
-            />
+        </section>
+
+        {/* Scio's Principle Section */}
+        <section className="w-full py-16 md:py-20">
+          <div className="max-w-3xl mx-auto px-6">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-8">Scio's Principle</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
+                <div className="text-lg font-bold text-blue-900 mb-2">Attempt First</div>
+                <p className="text-sm text-blue-800">
+                  Always reason before revealing. No answer peeking. Effort is the point.
+                </p>
+              </div>
+
+              <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50 p-6">
+                <div className="text-lg font-bold text-indigo-900 mb-2">Feedback Second</div>
+                <p className="text-sm text-indigo-800">
+                  Compare your logic to expert reasoning. Identify gaps, not errors. Learn diagnostic thinking.
+                </p>
+              </div>
+
+              <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-6">
+                <div className="text-lg font-bold text-purple-900 mb-2">Judgement Over Memorisation</div>
+                <p className="text-sm text-purple-800">
+                  Build the ability to reason under uncertainty. No memorised answers. Real thinking.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -108,34 +145,39 @@ export default function About() {
         </section>
 
         {/* What Makes Scio Different */}
-        <section className="w-full py-16 md:py-20 bg-gray-50 border-y border-gray-200">
+        <section className="w-full py-16 md:py-20">
           <div className="max-w-3xl mx-auto px-6">
-            <h2 className="text-3xl font-semibold text-gray-900 mb-12">What Makes Scio Different</h2>
+            <h2 className="text-3xl font-semibold text-gray-900 mb-8">What Makes Scio Different</h2>
             
             <div className="space-y-6">
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Real Finance Content</h3>
-                <p className="text-gray-700">Learn directly from live Financial Times articles and current events.</p>
+                <h3 className="font-semibold text-gray-900 mb-2">Real articles, real markets</h3>
+                <p className="text-gray-700">Learn from live Financial Times reporting and current events, not synthetic cases.</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Mastery, Not Streaks</h3>
-                <p className="text-gray-700">Gamification exists only to deepen understanding. No streaks, guilt loops, or engagement hacks.</p>
+                <h3 className="font-semibold text-gray-900 mb-2">Mechanism-first reasoning</h3>
+                <p className="text-gray-700">We force you to build transmission channels (how does shock travel?) before discussing impact. This is how analysts think.</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Minimalist Design</h3>
-                <p className="text-gray-700">A clean, focused reading environment designed for analysis.</p>
+                <h3 className="font-semibold text-gray-900 mb-2">Multi-agent trade-offs</h3>
+                <p className="text-gray-700">Every lesson maps winners and losers across stakeholder groups. Finance is about distribution, not just direction.</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Explanations</h3>
-                <p className="text-gray-700">Highlight any sentence to get clear, interview-relevant insight into what it means and why it matters.</p>
+                <h3 className="font-semibold text-gray-900 mb-2">Uncertainty and conditions</h3>
+                <p className="text-gray-700">We highlight what you don't know and what you'd need to watch. No false certainty.</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Analyst-Style Reasoning</h3>
-                <p className="text-gray-700">Compare your conclusions to expert interpretations.</p>
+                <h3 className="font-semibold text-gray-900 mb-2">No answer dumping</h3>
+                <p className="text-gray-700">We never auto-generate your reasoning. You build it. Feedback compares your logic to expert thinking — it doesn't rewrite your answer.</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Minimum viable features</h3>
+                <p className="text-gray-700">No gamification hacks, streaks, or engagement tricks. Just learning that actually works.</p>
               </div>
             </div>
           </div>
@@ -174,10 +216,10 @@ export default function About() {
         <section className="w-full py-16 md:py-24 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-200">
           <div className="max-w-3xl mx-auto px-6 text-center">
             <h2 className="text-4xl font-semibold text-gray-900 mb-4">
-              Ready to get your interview edge?
+              Ready to think differently?
             </h2>
             <p className="text-lg text-gray-700 mb-8">
-              Join our beta and start learning with real market events. No credit card required.
+              Try the demo completely free. See how Scio trains reasoning, not answers.
             </p>
 
             <a href={GOOGLE_FORM} target="_blank" rel="noreferrer">

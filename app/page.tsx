@@ -34,12 +34,12 @@ export default function Home() {
 
               {/* Main Heading */}
               <h1 className={`font-serif text-[2.5rem] md:text-[3rem] font-semibold leading-[1.15] tracking-tight text-white transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
-                Turn finance news into interview-ready insight.
+                Stop memorising finance takes. Start thinking like an analyst.
               </h1>
 
               {/* Subheading */}
               <p className={`text-base md:text-lg text-white/80 leading-relaxed max-w-xl mx-auto transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100 delay-100' : 'opacity-0'}`}>
-                Scio is the smarter way to learn finance — an AI platform that teaches through real articles, real markets, and real explanations.
+                Scio turns real financial news into reasoning drills that train causal thinking, trade-offs, and judgement — the skills interviews actually test.
               </p>
 
               {/* CTAs */}
@@ -86,40 +86,40 @@ export default function Home() {
         <section className="w-full py-24 md:py-32 border-b border-gray-200">
           <div className="max-w-3xl mx-auto px-6">
             <div className="space-y-16">
-              {/* Card 1: Predict First */}
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <span className="text-3xl mt-1">🎯</span>
-                  <div>
-                    <h3 className="text-2xl font-semibold text-gray-900">Predict First</h3>
-                    <p className="mt-2 text-lg text-gray-700 leading-relaxed">
-                      Write your hypothesis before reading. Activate your thinking and anchor your learning before any content exposure.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: Learn as You Read */}
+              {/* Card 1: Explain */}
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
                   <span className="text-3xl mt-1">📖</span>
                   <div>
-                    <h3 className="text-2xl font-semibold text-gray-900">Learn as You Read</h3>
+                    <h3 className="text-2xl font-semibold text-gray-900">Explain</h3>
                     <p className="mt-2 text-lg text-gray-700 leading-relaxed">
-                      Interactive explanations, tooltips, and AI-powered insights embedded throughout. Highlight any text and get instant, interview-ready explanations.
+                      Inline AI explanations. Highlight any sentence and get clear, interview-ready insight into what it means and why it matters.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Card 3: Prove You Understand */}
+              {/* Card 2: Reason */}
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <span className="text-3xl mt-1">🧠</span>
+                  <div>
+                    <h3 className="text-2xl font-semibold text-gray-900">Reason</h3>
+                    <p className="mt-2 text-lg text-gray-700 leading-relaxed">
+                      Build causal chains before seeing answers. Attempt your reasoning first, then compare against expert analysis to identify gaps and blind spots.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Prove */}
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
                   <span className="text-3xl mt-1">✓</span>
                   <div>
-                    <h3 className="text-2xl font-semibold text-gray-900">Prove You Understand</h3>
+                    <h3 className="text-2xl font-semibold text-gray-900">Prove</h3>
                     <p className="mt-2 text-lg text-gray-700 leading-relaxed">
-                      Checkpoints and reflections measure real comprehension, not just reading speed. Rewrite concepts in your own words and earn XP for genuine understanding.
+                      Short checkpoints that test implications, not recall. Earn XP for reasoning, not for streaks. Prove you can think, not that you can memorise.
                     </p>
                   </div>
                 </div>
@@ -175,21 +175,31 @@ export default function Home() {
           <div className="max-w-5xl mx-auto px-6 md:px-10">
             <div className="space-y-10">
               <div className="text-center space-y-3">
-                <h2 className="text-3xl font-semibold text-gray-900">Why Scio feels different</h2>
+                <h2 className="text-3xl font-semibold text-gray-900">How it works (30 seconds)</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 space-y-2">
-                  <h3 className="text-xl font-semibold text-gray-900">AI inline explanations</h3>
-                  <p className="text-base text-gray-700 leading-relaxed">
-                    Highlight any sentence and Scio explains what it means and why it matters — in clear, interview-ready language.
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 space-y-3">
+                  <div className="text-2xl font-bold text-blue-600">1</div>
+                  <h3 className="text-lg font-semibold text-gray-900">Highlight → Explain</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Select any text in the article and get instant, interview-ready explanations.
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 space-y-2">
-                  <h3 className="text-xl font-semibold text-gray-900">From reading to reasoning</h3>
-                  <p className="text-base text-gray-700 leading-relaxed">
-                    Scio doesn't just teach concepts. It trains you to talk about markets and companies the way interviewers want to hear.
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 space-y-3">
+                  <div className="text-2xl font-bold text-green-600">2</div>
+                  <h3 className="text-lg font-semibold text-gray-900">Build reasoning → Compare</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Attempt your reasoning first, then compare against expert analysis.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 space-y-3">
+                  <div className="text-2xl font-bold text-purple-600">3</div>
+                  <h3 className="text-lg font-semibold text-gray-900">Answer checkpoint → Feedback</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Test your understanding with implication-focused checkpoints and get interview feedback.
                   </p>
                 </div>
               </div>

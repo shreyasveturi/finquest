@@ -7,6 +7,7 @@ import PredictionCard, { DEFAULT_CHOICES as DEFAULT_PREDICTION_CHOICES, PREDICTI
 import ReflectionCard from '@/components/ReflectionCard';
 import InteractiveArticleWrapper from '@/components/InteractiveArticleWrapper';
 import InterviewExplainModal from '@/components/InterviewExplainModal';
+import ReasoningWorkflow from '@/components/ReasoningWorkflow';
 import { LESSONS, DEFAULT_LESSON_SLUG, GOOGLE_FORM } from '@/data/lessons';
 import type { Lesson, ReasoningLinksBlock } from '@/types/lesson';
 import type { CheckpointFeedback } from '@/types/checkpoint';
@@ -42,6 +43,8 @@ export default function LessonPage() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState(false);
   const [reasoningBlock, setReasoningBlock] = useState<ReasoningLinksBlock | null>(null);
+  const [reasoningWorkflowComplete, setReasoningWorkflowComplete] = useState(false);
+  const [showReasoningWorkflow, setShowReasoningWorkflow] = useState(false);
 
   const lessonSlug = lesson.slug;
 
@@ -51,10 +54,12 @@ export default function LessonPage() {
       const comp = localStorage.getItem(storageKey('completed', lessonSlug)) || (lessonSlug === DEFAULT_LESSON_SLUG ? localStorage.getItem('scio_completed') : null);
       const hints = localStorage.getItem(storageKey('hints', lessonSlug)) || (lessonSlug === DEFAULT_LESSON_SLUG ? localStorage.getItem('scio_hints') : null);
       const prediction = localStorage.getItem(`scio_prediction_${lesson.articleId}`);
+      const reasoning = localStorage.getItem(`scio_reasoning_${lesson.articleId}`);
       if (raw) setXp(parseInt(raw, 10) || 0);
       if (comp) setCompleted(JSON.parse(comp));
       if (hints) setHintUsed(JSON.parse(hints));
       if (prediction) setPredictionChoice(prediction);
+      if (reasoning) setReasoningWorkflowComplete(JSON.parse(reasoning));
     } catch (e) {
       // ignore
     }
@@ -71,6 +76,10 @@ export default function LessonPage() {
   useEffect(() => {
     localStorage.setItem(storageKey('hints', lessonSlug), JSON.stringify(hintUsed));
   }, [hintUsed, lessonSlug]);
+
+  useEffect(() => {
+    localStorage.setItem(`scio_reasoning_${lesson.articleId}`, JSON.stringify(reasoningWorkflowComplete));
+  }, [reasoningWorkflowComplete, lesson.articleId]);
 
   const completedSet = useMemo(() => new Set(completed), [completed]);
 
@@ -150,6 +159,11 @@ export default function LessonPage() {
   }
 
   const level = (() => {
+    // Special level for chip article
+    if (lesson.articleId === 'us-china-chip-trade-practices') {
+      return { name: 'Level 1: Geopolitics & Supply Chains', color: 'from-blue-400 to-green-400' };
+    }
+    // Default levels for other articles
     if (xp >= 80) return { name: 'Level 4: Market Maven', color: 'from-indigo-500 to-purple-500' };
     if (xp >= 50) return { name: 'Level 3: Policy Analyst', color: 'from-teal-500 to-indigo-500' };
     if (xp >= 20) return { name: 'Level 2: Policy Watcher', color: 'from-green-400 to-teal-500' };
@@ -225,6 +239,9 @@ export default function LessonPage() {
               completedCheckpoints={completed}
               reasoningLinks={lesson.reasoningLinks}
               onOpenReasoningLinks={setReasoningBlock}
+              reasoningWorkflowRequired={lesson.articleId === 'us-china-chip-trade-practices'}
+              reasoningWorkflowComplete={reasoningWorkflowComplete}
+              onOpenReasoningWorkflow={() => setShowReasoningWorkflow(true)}
             />
           </InteractiveArticleWrapper>
 
@@ -520,7 +537,6 @@ export default function LessonPage() {
           </button>
         </div>
       </Modal>
-
       {/* Interview Explain Modal */}
       <InterviewExplainModal
         isOpen={showExplainModal}
@@ -528,6 +544,17 @@ export default function LessonPage() {
         selectedText={explainSelection}
         articleTitle={lesson.articleTitle}
       />
+
+      {/* Reasoning Workflow Modal */}
+      {lesson.expertReasoning && (
+        <ReasoningWorkflow
+          isOpen={showReasoningWorkflow}
+          onClose={() => setShowReasoningWorkflow(false)}
+          onComplete={() => setReasoningWorkflowComplete(true)}
+          expertReasoning={lesson.expertReasoning}
+          articleTitle={lesson.articleTitle}
+        />
+      )}
     </>
   );
 }

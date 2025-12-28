@@ -74,6 +74,20 @@ const chipLesson: Lesson = {
   articleSource: 'Financial Times, Dec 23–24 2025 (educational paraphrase)',
   articleUrl: 'https://www.ft.com/content/a1274e4a-baf3-4f63-82f6-2758af1aa745',
   articleId: 'us-china-chip-trade-practices',
+  expertReasoning: {
+    shock: 'US government formally accuses China of unfair chip practices and weaponising dependencies. However, tariff increases are delayed until mid-2027, not applied immediately.',
+    channel: 'The delay acts as a moderate signal: markets interpret it as caution on near-term inflation and supply disruption, but uncertainty about future tariffs keeps firms cautious on capex. Retaliation risk from China remains elevated.',
+    impact: 'US chipmakers and fabs face both opportunity (tariffs could boost domestic valuations long-term) and risk (delays weaken deterrence). Chip equipment makers and EDA firms exposed to China see margin pressure. Global manufacturers face supply chain uncertainty. Consumer-facing firms see inflation risk if tariffs eventually materialize.',
+    channels: [
+      'Inflation / prices',
+      'Supply chains',
+      'Retaliation / geopolitics',
+      'Investment / capex',
+      'Regulation / national security',
+    ],
+    winners: ['US chipmakers', 'Global manufacturers'],
+    losers: ['Chinese firms', 'Global manufacturers'],
+  },
   predictionChoices: [
     { id: 'delay-tariffs', label: 'US cites unfair practices but delays tariff hikes to 2027+' },
     { id: 'immediate-tariffs', label: 'US slaps immediate, sharp chip tariffs on China' },
