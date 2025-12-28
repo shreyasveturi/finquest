@@ -29,12 +29,12 @@ export default function Home() {
               <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 text-xs font-medium text-neutral-700 transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100 delay-50' : 'opacity-0'}`}>
                 <span>New</span>
                 <span>•</span>
-                <span>AI inline explanations</span>
+                <span>Reasoning mode + inline AI explanations</span>
               </div>
 
               {/* Main Heading */}
               <h1 className={`font-serif text-[2.5rem] md:text-[3rem] font-semibold leading-[1.15] tracking-tight text-white transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
-                Stop memorising finance takes. Start thinking like an analyst.
+                Regain the ability to think critically
               </h1>
 
               {/* Subheading */}
@@ -72,7 +72,7 @@ export default function Home() {
           
           <div className="aspect-video w-full max-w-3xl mx-auto rounded-2xl border border-neutral-200 shadow-sm overflow-hidden bg-black">
             <video
-              src="/Scio.mp4"
+              src="/Scio Real.mp4"
               autoPlay
               loop
               muted
