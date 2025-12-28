@@ -39,7 +39,7 @@ export default function Home() {
 
               {/* Subheading */}
               <p className={`text-base md:text-lg text-white/80 leading-relaxed max-w-xl mx-auto transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100 delay-100' : 'opacity-0'}`}>
-                Scio turns real financial news into reasoning drills that train causal thinking, trade-offs, and judgement — the skills interviews actually test.
+                Scio trains the skill interviews actually test — building causal chains, weighing trade-offs, and defending judgement — not memorising answers.
               </p>
 
               {/* CTAs */}
