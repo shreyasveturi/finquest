@@ -1,7 +1,9 @@
 import Link from 'next/link';
-import { GOOGLE_FORM } from '../content/rachelReevesBudget';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function NavBar() {
+  const { data: session } = useSession();
+
   return (
     <nav className="w-full bg-white border-b border-neutral-200">
       <div className="max-w-5xl mx-auto px-6 md:px-10 py-3 md:py-4 flex items-center justify-between gap-4 flex-wrap">
@@ -11,25 +13,25 @@ export default function NavBar() {
 
         <div className="flex items-center gap-4 md:gap-6 flex-wrap">
           <Link
-            href="/about"
-            className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 transition-all duration-150 ease-out hover:underline underline-offset-4"
+            href="/play"
+            className="text-sm md:text-base text-white bg-blue-600 px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
           >
-            About
+            ⚔️ Play
           </Link>
           <Link
-            href="/demo"
-            className="text-sm md:text-base text-white bg-neutral-900 px-4 py-1.5 rounded-lg hover:opacity-90 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
+            href="/admin/metrics"
+            className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 transition-all duration-150 ease-out hover:underline underline-offset-4"
           >
-            Try Demo
+            Metrics
           </Link>
-          <a
-            href={GOOGLE_FORM}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm md:text-base bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
-          >
-            Join Beta
-          </a>
+          {session ? (
+            <button
+              onClick={() => signOut()}
+              className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 transition-all duration-150 ease-out hover:underline underline-offset-4"
+            >
+              Sign out
+            </button>
+          ) : null}
         </div>
       </div>
     </nav>

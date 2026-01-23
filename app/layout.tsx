@@ -1,10 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Merriweather } from 'next/font/google';
 import './globals.css';
-import Footer from '../components/Footer';
-import NavBar from '../components/NavBar';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import { ClientLayout } from './client-layout';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -23,21 +20,16 @@ const merriweather = Merriweather({
 });
 
 export const metadata: Metadata = {
-  title: 'Scio — Gamified finance-news learning',
-  description:
-    'Turn finance articles into short interactive learning runs for internship prep. Try the Budget Demo.',
+  title: 'Scio — Competitive Reasoning Battles',
+  description: 'Test your reasoning under pressure in real-time 1v1 battles. Earn ELO ratings and climb the leaderboard.',
 };
+
+const fontClasses = `${geistSans.variable} ${geistMono.variable} ${merriweather.variable}`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${merriweather.variable} antialiased min-h-screen bg-white text-neutral-900 flex flex-col w-full`}>
-        <NavBar />
-        <main className="flex-1 w-full">{children}</main>
-        <Footer />
-        <Analytics />
-        <SpeedInsights />
-      </body>
+      <ClientLayout fontClasses={fontClasses}>{children}</ClientLayout>
     </html>
   );
 }
