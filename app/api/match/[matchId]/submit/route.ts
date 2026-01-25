@@ -4,6 +4,8 @@ import { calculateNewRatings, getTier } from '@/lib/elo';
 import { getBotAnswer } from '@/lib/bot-logic';
 import { trackEvent } from '@/lib/events';
 
+const ROUND_DURATION_MS = 25000; // 25s per round
+
 /**
  * POST /api/match/[matchId]/submit
  * Submit round answers for a match
@@ -58,6 +60,14 @@ export async function POST(
     // Determine which player this is
     const isPlayerA = round.match.playerAId === clientId;
 
+    // If round already ended, return idempotently
+    if (round.endedAt) {
+      const allRounds = await prisma.matchRound.findMany({ where: { matchId } });
+      const last = allRounds.sort((a, b) => a.roundIndex - b.roundIndex)[allRounds.length - 1];
+      const matchComplete = !!last?.endedAt;
+      return NextResponse.json({ matchComplete, roundComplete: true });
+    }
+
     // Update round with answer
     await prisma.matchRound.update({
       where: { id: roundId },
@@ -87,6 +97,8 @@ export async function POST(
     const roundComplete = updatedRound?.playerAAnswer !== null && updatedRound?.playerBAnswer !== null;
 
     if (roundComplete) {
+      // End round immediately when both answered
+      await prisma.matchRound.update({ where: { id: roundId }, data: { endedAt: new Date() } });
       await trackEvent('round_completed', {
         matchId,
         roundId,
@@ -98,9 +110,11 @@ export async function POST(
       where: { matchId },
     });
 
-    const allRoundsComplete = allRounds.every(r => r.playerAAnswer !== null && r.playerBAnswer !== null);
+    const allRoundsCompleteByAnswers = allRounds.every(r => r.playerAAnswer !== null && r.playerBAnswer !== null);
+    const lastRound = allRounds.sort((a, b) => a.roundIndex - b.roundIndex)[allRounds.length - 1];
+    const allRoundsEnded = !!lastRound?.endedAt;
 
-    if (allRoundsComplete) {
+    if (allRoundsCompleteByAnswers || allRoundsEnded) {
       // Calculate scores
       const playerAScore = allRounds.filter(
         r => r.playerAAnswer === r.correctIndex
@@ -172,6 +186,7 @@ export async function POST(
         where: { id: matchId },
         data: {
           status: 'completed',
+          endedAt: new Date(),
           winnerId: playerAWins ? round.match.playerAId : playerBWins ? round.match.playerBId : null,
         },
       });
@@ -201,6 +216,9 @@ export async function POST(
     });
   } catch (error) {
     console.error('Submit error:', error);
+    if (error instanceof Error) {
+      console.error('Submit error details:', { message: error.message, stack: error.stack });
+    }
     return NextResponse.json(
       { error: 'Submission failed' },
       { status: 500 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+const ROUND_DURATION_MS = 25000; // 25s per round
+
 /**
  * GET /api/match/[matchId]
  * Fetch match data for the player
@@ -40,9 +42,43 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(match);
+    // Compute current round and timing derived from server state
+    const orderedRounds = [...match.rounds].sort((a, b) => a.roundIndex - b.roundIndex);
+    const activeIndex = orderedRounds.findIndex(r => r.endedAt === null);
+    const now = Date.now();
+
+    let roundStartAt: number | null = null;
+    if (activeIndex === 0) {
+      // Initialize match start if missing
+      if (!match.startedAt) {
+        await prisma.match.update({ where: { id: matchId }, data: { startedAt: new Date() } });
+      }
+      roundStartAt = new Date(match.startedAt ?? new Date()).getTime();
+    } else if (activeIndex > 0) {
+      const prev = orderedRounds[activeIndex - 1];
+      roundStartAt = prev.endedAt ? new Date(prev.endedAt).getTime() : null;
+    }
+
+    const roundDurationMs = ROUND_DURATION_MS;
+    const roundStatus = activeIndex === -1
+      ? 'ended'
+      : (roundStartAt !== null && (now >= roundStartAt + roundDurationMs))
+        ? 'timeout'
+        : 'active';
+
+    return NextResponse.json({
+      ...match,
+      currentRoundIndex: activeIndex === -1 ? orderedRounds.length - 1 : activeIndex,
+      roundStartAt,
+      roundDurationMs,
+      roundStatus,
+      serverNow: now,
+    });
   } catch (error) {
     console.error('Fetch match error:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', { message: error.message, stack: error.stack });
+    }
     return NextResponse.json(
       { error: 'Failed to fetch match' },
       { status: 500 }

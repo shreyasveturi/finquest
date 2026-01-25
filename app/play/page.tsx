@@ -5,13 +5,9 @@ import Button from '@/components/Button';
 
 export default function PlayPage() {
   const router = useRouter();
-  const [isQueued, setIsQueued] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [needsUsername, setNeedsUsername] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
-  const [queueExpired, setQueueExpired] = useState(false);
-  const [currentQueueId, setCurrentQueueId] = useState<string | null>(null);
 
   useEffect(() => {
     const existing = typeof window !== 'undefined' ? localStorage.getItem('scio_username') : null;
@@ -54,63 +50,10 @@ export default function PlayPage() {
     router.push('/play');
   };
 
-  const handleJoinQueue = async () => {
-    setError(null);
-    setQueueExpired(false);
-    setIsQueued(true);
-    setTimeRemaining(12);
-    await logEvent('cta_start_match_clicked');
-    const ident = ensureIdentity();
-    if (!ident) return;
-
-    try {
-      const res = await fetch('/api/matchmaking/join', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(ident) 
-      });
-      const data = await res.json();
-
-      if (data.matchId) {
-        // Immediate human match found
-        router.push(`/match/${data.matchId}`);
-        return;
-      }
-
-      if (data.queueId) {
-        setCurrentQueueId(data.queueId);
-        // In queue - start polling for human opponent
-        let pollInterval: NodeJS.Timeout | null = null;
-        let timeoutId: NodeJS.Timeout | null = null;
-
-        pollInterval = setInterval(async () => {
-          const statusRes = await fetch(`/api/matchmaking/status?queueId=${data.queueId}`);
-          const statusData = await statusRes.json();
-
-          if (statusData.matchId) {
-            if (pollInterval) clearInterval(pollInterval);
-            if (timeoutId) clearTimeout(timeoutId);
-            router.push(`/match/${statusData.matchId}`);
-          }
-        }, 750);
-
-        // After 12 seconds, show user choice to play bot or keep waiting
-        timeoutId = setTimeout(() => {
-          if (pollInterval) clearInterval(pollInterval);
-          console.log('Queue expired, showing bot option');
-          setIsQueued(false);
-          setQueueExpired(true);
-        }, 12000);
-      }
-    } catch (err) {
-      setError('Failed to join queue');
-      setIsQueued(false);
-    }
-  };
-
   const handlePlayBot = async () => {
     const ident = ensureIdentity();
     if (!ident) return;
+    await logEvent('cta_play_vs_bot_clicked');
 
     try {
       const res = await fetch('/api/matchmaking/create-bot', {
@@ -130,28 +73,6 @@ export default function PlayPage() {
     }
   };
 
-  const handleCancel = () => {
-    setIsQueued(false);
-    setQueueExpired(false);
-    setError(null);
-  };
-
-  // Countdown timer
-  useEffect(() => {
-    if (!isQueued) return;
-
-    const interval = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isQueued]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-start px-6 pt-8 pb-6 sm:pt-12 sm:pb-8">
@@ -173,51 +94,13 @@ export default function PlayPage() {
               <Button onClick={handleSetUsername} className="w-full">Start Playing</Button>
             </div>
           </div>
-        ) : queueExpired ? (
-          <div className="text-center space-y-6 flex-1 flex flex-col justify-center">
-            <div>
-              <h2 className="text-2xl font-bold text-neutral-900 mb-2">No opponents found</h2>
-              <p className="text-neutral-600 mb-6">Would you like to play against a bot or keep waiting for a human?</p>
-            </div>
-
-            <div className="space-y-3">
-              <Button
-                onClick={handlePlayBot}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
-              >
-                🤖 Play Against Bot
-              </Button>
-              <Button
-                onClick={handleJoinQueue}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
-              >
-                ⏱️ Keep Waiting
-              </Button>
-            </div>
-          </div>
-        ) : isQueued ? (
-          <div className="text-center space-y-6 flex-1 flex flex-col justify-center">
-            <div className="animate-pulse">
-              <div className="text-6xl font-bold text-blue-600 mb-4">{timeRemaining}s</div>
-              <p className="text-xl text-neutral-600">Finding a human opponent...</p>
-            </div>
-
-            <div className="bg-neutral-50 rounded-lg p-6 space-y-4">
-              <p className="text-sm text-neutral-600">
-                Searching for a ranked opponent in your skill range.
-              </p>
-              <Button variant="outline" onClick={handleCancel} className="w-full">
-                Cancel
-              </Button>
-            </div>
-          </div>
         ) : (
           <div className="text-center space-y-8 flex-1 flex flex-col justify-between">
             <div className="flex-1 flex flex-col justify-start pt-4">
               <div className="mb-8">
                 <h1 className="text-4xl font-bold text-neutral-900 mb-2">⚔️ Ready to Battle?</h1>
                 <p className="text-lg text-neutral-600">
-                  Challenge a human opponent or play a bot.
+                  Play against our adaptive AI.
                 </p>
               </div>
 
@@ -240,14 +123,14 @@ export default function PlayPage() {
 
             <div className="flex flex-col gap-6 mt-8 pb-4">
               <Button
-                onClick={handleJoinQueue}
+                onClick={handlePlayBot}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 text-lg"
               >
-                Find Human Opponent
+                Play vs Bot
               </Button>
 
               <p className="text-xs text-neutral-500">
-                Up to 12 seconds to find a ranked opponent
+                Peer-to-peer matchmaking is coming soon
               </p>
             </div>
           </div>

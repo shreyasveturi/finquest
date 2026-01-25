@@ -37,7 +37,7 @@ export default function Home() {
 
               {/* Subheading */}
               <p className={`text-base md:text-lg text-white/80 leading-relaxed max-w-xl mx-auto transition-opacity duration-200 ease-out ${heroVisible ? 'opacity-100 delay-100' : 'opacity-0'}`}>
-                Compete in real-time 1v1 battles. Face human opponents or our adaptive AI. Earn ELO ratings and climb the leaderboard.
+                Compete in real-time 1v1 battles against our adaptive AI. Peer-to-peer matchmaking is coming soon. Earn ELO ratings and climb the leaderboard.
               </p>
 
               {/* CTAs */}

@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
         playerAId: clientId,
         isBotMatch: true,
         status: 'in_progress',
+        startedAt: new Date(),
       },
     });
 

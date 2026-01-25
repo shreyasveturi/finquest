@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Button from '@/components/Button';
 
 interface Question {
@@ -19,12 +19,18 @@ interface Round {
   playerAAnswer?: number;
   playerBAnswer?: number;
   correctIndex: number;
+  endedAt?: string | null;
 }
 
 interface Match {
   id: string;
   rounds: Round[];
   isBotMatch: boolean;
+  currentRoundIndex?: number;
+  roundStartAt?: number | null;
+  roundDurationMs?: number;
+  roundStatus?: 'active' | 'timeout' | 'ended';
+  serverNow?: number;
 }
 
 export default function MatchPage() {
@@ -35,10 +41,39 @@ export default function MatchPage() {
   const [match, setMatch] = useState<Match | null>(null);
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState(30);
+  const [timeRemainingMs, setTimeRemainingMs] = useState<number>(25000);
+  const [inputsLocked, setInputsLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [matchResult, setMatchResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const finalizeInFlight = useRef(false);
+
+  // Normalize question options from JSON string to array
+  const normalizeRounds = useCallback((rounds: any[]) => {
+    return rounds.map((r: any) => {
+      const opts = (() => {
+        if (Array.isArray(r.question?.options)) return r.question.options;
+        if (typeof r.question?.options === 'string') {
+          try {
+            const parsed = JSON.parse(r.question.options);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {}
+        }
+        return [] as string[];
+      })();
+
+      return {
+        ...r,
+        question: r.question ? {
+          ...r.question,
+          options: opts,
+          prompt: r.question.prompt || '',
+          type: r.question.type || 'multiple-choice',
+          difficulty: r.question.difficulty || 'medium',
+        } : null,
+      };
+    });
+  }, []);
 
   // Fetch match data
   useEffect(() => {
@@ -55,31 +90,18 @@ export default function MatchPage() {
           setLoading(false);
           return;
         }
-        const normalizedRounds = data.rounds.map((r: any) => {
-          const opts = (() => {
-            if (Array.isArray(r.question?.options)) return r.question.options;
-            if (typeof r.question?.options === 'string') {
-              try {
-                const parsed = JSON.parse(r.question.options);
-                if (Array.isArray(parsed)) return parsed;
-              } catch {}
-            }
-            return [] as string[];
-          })();
+        const normalizedRounds = normalizeRounds(data.rounds);
 
-          return {
-            ...r,
-            question: r.question ? {
-              ...r.question,
-              options: opts,
-              prompt: r.question.prompt || '',
-              type: r.question.type || 'multiple-choice',
-              difficulty: r.question.difficulty || 'medium',
-            } : null,
-          };
-        });
-
-        setMatch({ ...data, rounds: normalizedRounds });
+        const m: Match = { ...data, rounds: normalizedRounds };
+        setMatch(m);
+        // Derive timer from server state
+        const serverNow = m.serverNow ?? Date.now();
+        const startAt = m.roundStartAt ?? serverNow;
+        const duration = m.roundDurationMs ?? 25000;
+        const remaining = Math.max(0, startAt + duration - serverNow);
+        setTimeRemainingMs(remaining);
+        setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
+        setCurrentRoundIndex(m.currentRoundIndex ?? 0);
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch match:', err);
@@ -88,7 +110,7 @@ export default function MatchPage() {
     };
 
     fetchMatch();
-  }, [matchId, router]);
+  }, [matchId, router, normalizeRounds]);
 
   const handleSubmit = useCallback(async (answerOverride?: number) => {
     if (!match || !matchId) return;
@@ -126,13 +148,24 @@ export default function MatchPage() {
         console.log('Match complete, setting result:', data);
         setMatchResult(data);
       } else {
-        if (currentRoundIndex < match.rounds.length - 1) {
-          console.log('Moving to next round:', currentRoundIndex + 1);
-          setCurrentRoundIndex(prev => prev + 1);
-          setSelectedAnswer(null);
-          setTimeRemaining(30);
+        // Refetch match to get authoritative next round and timing
+        const clientId2 = localStorage.getItem('scio_client_id');
+        const res2 = await fetch(`/api/match/${matchId}?clientId=${clientId2}`);
+        const fresh = await res2.json();
+        if (!res2.ok || fresh?.error) {
+          console.error('Failed to refetch match');
         } else {
-          console.log('No more rounds but matchComplete is false');
+          const normalizedRounds = normalizeRounds(fresh.rounds);
+          const m: Match = { ...fresh, rounds: normalizedRounds };
+          setMatch(m);
+          setCurrentRoundIndex(m.currentRoundIndex ?? currentRoundIndex);
+          const serverNow = m.serverNow ?? Date.now();
+          const startAt = m.roundStartAt ?? serverNow;
+          const duration = m.roundDurationMs ?? 25000;
+          const remaining = Math.max(0, startAt + duration - serverNow);
+          setTimeRemainingMs(remaining);
+          setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
+          setSelectedAnswer(null);
         }
       }
     } catch (err) {
@@ -140,26 +173,90 @@ export default function MatchPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [match, matchId, currentRoundIndex, selectedAnswer]);
+  }, [match, matchId, currentRoundIndex, selectedAnswer, normalizeRounds]);
 
-  // Timer with auto-submit on expiry
+  // Server-driven timer; finalize on expiry, no auto-submission
   useEffect(() => {
-    if (!match || currentRoundIndex >= match.rounds.length || matchResult) return;
+    if (!match || matchResult) return;
 
-    const interval = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          // Auto-submit with selected answer or default to 0
-          const answerToSubmit = selectedAnswer !== null ? selectedAnswer : 0;
-          handleSubmit(answerToSubmit);
-          return 0;
+    const tickInterval = setInterval(() => {
+      setTimeRemainingMs(prev => {
+        const next = Math.max(0, prev - 250);
+        if (next === 0) {
+          setInputsLocked(true);
         }
-        return prev - 1;
+        return next;
       });
-    }, 1000);
+    }, 250);
 
-    return () => clearInterval(interval);
-  }, [match, currentRoundIndex, matchResult, handleSubmit]);
+    return () => clearInterval(tickInterval);
+  }, [match, matchResult]);
+
+  // When timer hits 0, call finalize once and poll until round ends
+  useEffect(() => {
+    const doFinalize = async () => {
+      if (!match || !matchId) return;
+      if (finalizeInFlight.current) return;
+      finalizeInFlight.current = true;
+      try {
+        const clientId = localStorage.getItem('scio_client_id');
+        const res = await fetch(`/api/match/${matchId}/finalize-round`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          console.error('Finalize failed:', data);
+          finalizeInFlight.current = false;
+          return;
+        }
+
+        if (data.matchComplete) {
+          setTimeout(() => setMatchResult(data), 900);
+          return;
+        }
+
+        // Poll for round end
+        const poll = async () => {
+          const clientId2 = localStorage.getItem('scio_client_id');
+          const r = await fetch(`/api/match/${matchId}?clientId=${clientId2}`);
+          const fresh = await r.json();
+          if (!r.ok || fresh?.error) {
+            setTimeout(poll, 400);
+            return;
+          }
+          if (fresh.roundStatus === 'ended') {
+            // Transition to next round after brief delay
+            setTimeout(() => {
+              const normalizedRounds = normalizeRounds(fresh.rounds);
+              const m: Match = { ...fresh, rounds: normalizedRounds };
+              setMatch(m);
+              setCurrentRoundIndex(m.currentRoundIndex ?? currentRoundIndex);
+              const serverNow = m.serverNow ?? Date.now();
+              const startAt = m.roundStartAt ?? serverNow;
+              const duration = m.roundDurationMs ?? 25000;
+              const remaining = Math.max(0, startAt + duration - serverNow);
+              setTimeRemainingMs(remaining);
+              setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
+              setSelectedAnswer(null);
+              finalizeInFlight.current = false;
+            }, 900);
+          } else {
+            setTimeout(poll, 400);
+          }
+        };
+        poll();
+      } catch (e) {
+        console.error('Finalize error:', e);
+        finalizeInFlight.current = false;
+      }
+    };
+
+    if (timeRemainingMs === 0 && match && !matchResult) {
+      doFinalize();
+    }
+  }, [timeRemainingMs, match, matchId, matchResult, currentRoundIndex]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading match...</div>;
@@ -232,6 +329,19 @@ export default function MatchPage() {
   const question = round.question;
   const options = Array.isArray(question.options) ? question.options : [];
 
+  // Defensive: If options are missing, show error
+  if (options.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <p className="text-red-600 font-semibold">Question data missing</p>
+          <p className="text-sm text-neutral-600">Unable to load answer options. Please refresh.</p>
+          <Button onClick={() => router.push('/play')}>Back to Play</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
@@ -240,8 +350,8 @@ export default function MatchPage() {
           <p className="text-sm font-semibold text-neutral-600">
             Round {currentRoundIndex + 1} of 5
           </p>
-          <div className={`text-lg font-bold ${timeRemaining <= 5 ? 'text-red-600' : 'text-blue-600'}`}>
-            {timeRemaining}s
+          <div className={`text-lg font-bold ${timeRemainingMs <= 5000 ? 'text-red-600' : 'text-blue-600'}`}>
+            {Math.ceil(timeRemainingMs / 1000)}s
           </div>
         </div>
       </div>
@@ -270,7 +380,7 @@ export default function MatchPage() {
             {options.map((option, index) => (
               <button
                 key={index}
-                onClick={() => setSelectedAnswer(index)}
+                onClick={() => !inputsLocked && setSelectedAnswer(index)}
                 className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
                   selectedAnswer === index
                     ? 'border-blue-600 bg-blue-50'
@@ -296,7 +406,7 @@ export default function MatchPage() {
           {/* Submit button */}
           <Button
             onClick={() => handleSubmit()}
-            disabled={selectedAnswer === null || isSubmitting}
+            disabled={inputsLocked || selectedAnswer === null || isSubmitting}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-300 text-white font-semibold py-3"
           >
             {isSubmitting ? 'Submitting...' : currentRoundIndex === match.rounds.length - 1 ? 'Finish Match' : 'Next Question'}

@@ -1,50 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 /**
- * GET /api/matchmaking/status?queueId=XXX
- * Poll for match status
- * Returns: { matchId? | status: 'queued' | 'matched' }
+ * GET /api/matchmaking/status
+ * Disabled in bot-only mode.
  */
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const queueId = searchParams.get('queueId');
-
-    if (!queueId) {
-      return NextResponse.json(
-        { error: 'queueId required' },
-        { status: 400 }
-      );
-    }
-
-    // Check if match exists for this user
-    const match = await prisma.match.findFirst({
-      where: {
-        OR: [
-          { playerAId: queueId },
-          { playerBId: queueId },
-        ],
-        status: 'in_progress',
-      },
-      include: {
-        rounds: true,
-      },
-    });
-
-    if (match) {
-      return NextResponse.json({
-        matchId: match.id,
-        status: 'matched',
-        isBotMatch: match.isBotMatch,
-      });
-    }
-
-    // Still queued
-    return NextResponse.json({
-      status: 'queued',
-      queueId,
-    });
+    return NextResponse.json(
+      { error: 'Human matchmaking status disabled. Bot-only mode.' },
+      { status: 410 }
+    );
   } catch (error) {
     console.error('Status check error:', error);
     return NextResponse.json(
