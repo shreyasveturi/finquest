@@ -4,6 +4,8 @@
 
 Scio has been successfully cleaned up and is now running exclusively as a **competitive ranked reasoning battle game (v0.1)**. All v1.0 features (drills, pricing, lessons, accounts, etc.) have been removed.
 
+Identity is now username-only (no auth). A `clientId` + `username` pair is stored in `localStorage` and sent with all matchmaking, match, and event calls.
+
 ---
 
 ## ✅ Deliverables
@@ -26,15 +28,15 @@ Scio has been successfully cleaned up and is now running exclusively as a **comp
 - **Metrics (`/admin/metrics`)**: Global leaderboard & analytics
 
 ### 4. **API Endpoints** ✅
-- Auth (Google OAuth)
-- Matchmaking (join, status, cancel)
+- Matchmaking (join, status, cancel) — keyed by `clientId`/`username`
 - Match (get data, submit answers with ELO calc)
-- Admin metrics
+- Events (client-side tracking, sessionless)
+- Admin metrics/leaderboard (public)
 
 ### 5. **Database** ✅
 - 60 seeded questions (20 easy, 25 medium, 15 hard)
 - User, Question, Match, MatchRound, Event tables
-- NextAuth tables for sessions
+- No auth/session tables required in v0.1
 
 ### 6. **Documentation** ✅
 - `README_V0_1.md` - Complete setup guide, API docs, database schema
@@ -60,10 +62,10 @@ Scio has been successfully cleaned up and is now running exclusively as a **comp
 
 ```
 Pages:        4 (/, /play, /match/[id], /admin/metrics)
-API Routes:   7 (auth, matchmaking, match, admin)
+API Routes:   6 (matchmaking, match, events, admin)
 Components:   4 (Button, Card, Footer, NavBar)
 Libraries:    6 (bot, elo, events, matchmaking, analytics, prisma)
-Types:        1 (next-auth.d.ts)
+Types:        0 custom auth types required
 ```
 
 ---
@@ -101,8 +103,7 @@ npm start
 
 **Environment Variables Required:**
 ```env
-DATABASE_URL, NEXTAUTH_URL, NEXTAUTH_SECRET,
-GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ADMIN_EMAIL
+DATABASE_URL
 ```
 
 ---
@@ -113,7 +114,7 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ADMIN_EMAIL
 - ✅ Matchmaking system (SBMM + AI fallback)
 - ✅ ELO rating & tier progression
 - ✅ 60 seeded questions
-- ✅ Authentication (Google OAuth)
+- ✅ Identity via `clientId` + username (no auth)
 - ✅ Database schema & migrations
 - ✅ Event tracking for analytics
 - ✅ Admin metrics dashboard
@@ -129,7 +130,7 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ADMIN_EMAIL
 
 1. Visit homepage
 2. Click "⚔️ Start a Match"
-3. Sign in with Google
+3. Enter username (stored locally)
 4. Wait for matchmaking (AI fallback after 12s)
 5. Play 5 questions (30s each)
 6. See instant results
@@ -144,14 +145,13 @@ All changes committed. No uncommitted files.
 **What changed:**
 - Deleted 30+ v1.0 files/directories
 - Updated NavBar, Footer, Homepage
-- Fixed build configuration
+- Removed auth (NextAuth, nodemailer); username-only identity
 - Added v0.1 documentation
 
 **What stayed the same:**
 - Typography & global styling (Merriweather, Tailwind)
-- Database schema
-- Authentication flow
-- API architecture
+- Core database schema (users, matches, events)
+- API architecture (matchmaking, match, analytics)
 
 ---
 

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { calculateNewRatings, getTier } from '@/lib/elo';
 import { getBotAnswer } from '@/lib/bot-logic';
@@ -15,14 +14,15 @@ export async function POST(
   { params }: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { matchId } = await params;
-    const userId = session.user.id;
-    const { roundId, playerAnswer } = await req.json();
+    const { roundId, playerAnswer, clientId } = await req.json();
+    
+    if (!clientId || !roundId || playerAnswer === undefined) {
+      return NextResponse.json(
+        { error: 'clientId, roundId, and playerAnswer required' },
+        { status: 400 }
+      );
+    }
 
     // Get the round and match
     const round = await prisma.matchRound.findUnique({
@@ -33,15 +33,22 @@ export async function POST(
       },
     });
 
-    if (!round || round.match.id !== matchId) {
+    if (!round) {
       return NextResponse.json(
         { error: 'Round not found' },
         { status: 404 }
       );
     }
 
+    if (round.match.id !== matchId) {
+      return NextResponse.json(
+        { error: 'Round does not belong to this match' },
+        { status: 400 }
+      );
+    }
+
     // Verify user is in this match
-    if (round.match.playerAId !== userId && round.match.playerBId !== userId) {
+    if (round.match.playerAId !== clientId && round.match.playerBId !== clientId) {
       return NextResponse.json(
         { error: 'Not a player in this match' },
         { status: 403 }
@@ -49,7 +56,7 @@ export async function POST(
     }
 
     // Determine which player this is
-    const isPlayerA = round.match.playerAId === userId;
+    const isPlayerA = round.match.playerAId === clientId;
 
     // Update round with answer
     await prisma.matchRound.update({
@@ -59,14 +66,17 @@ export async function POST(
         : { playerBAnswer: playerAnswer },
     });
 
-    // If bot match, generate bot answer
-    if (round.match.isBotMatch && !isPlayerA) {
+    // If bot match and this is playerA (human), generate bot answer immediately
+    if (round.match.isBotMatch && isPlayerA) {
       const botAnswer = getBotAnswer(round.questionId, round.question.difficulty);
       await prisma.matchRound.update({
         where: { id: roundId },
         data: { playerBAnswer: botAnswer },
       });
     }
+
+    // If bot match and this is playerB (shouldn't happen), just use the submitted answer
+    // (This is a safeguard; bots should only be playerB in theory)
 
     // Check if round is complete (both players answered)
     const updatedRound = await prisma.matchRound.findUnique({
@@ -77,10 +87,10 @@ export async function POST(
     const roundComplete = updatedRound?.playerAAnswer !== null && updatedRound?.playerBAnswer !== null;
 
     if (roundComplete) {
-      await trackEvent(userId, 'round_completed', {
+      await trackEvent('round_completed', {
         matchId,
         roundId,
-      });
+      }, clientId);
     }
 
     // Check if match is complete (all 5 rounds done)
@@ -102,43 +112,60 @@ export async function POST(
       const playerAWins = playerAScore > playerBScore;
       const playerBWins = playerBScore > playerAScore;
 
-      // Get current ratings
-      const [playerA, playerB] = await Promise.all([
-        prisma.user.findUnique({ where: { id: round.match.playerAId } }),
-        prisma.user.findUnique({ where: { id: round.match.playerBId || '' } }),
-      ]);
+      // For bot matches, only get playerA; playerB is not a real user
+      const playerA = await prisma.user.findUnique({
+        where: { id: round.match.playerAId },
+      });
 
-      if (!playerA || !playerB) {
+      if (!playerA) {
         return NextResponse.json(
-          { error: 'Players not found' },
+          { error: 'Player not found' },
           { status: 500 }
         );
       }
 
-      // Calculate new ratings
+      // For human vs human, also fetch playerB
+      let playerB = null;
+      if (!round.match.isBotMatch && round.match.playerBId) {
+        playerB = await prisma.user.findUnique({
+          where: { id: round.match.playerBId },
+        });
+
+        if (!playerB) {
+          return NextResponse.json(
+            { error: 'Opponent not found' },
+            { status: 500 }
+          );
+        }
+      }
+
+      // Calculate new ratings (use default 1200 for bot)
+      const playerBRating = playerB?.rating || 1200;
       const { playerANewRating, playerBNewRating } = calculateNewRatings(
         playerA.rating,
-        playerB.rating,
+        playerBRating,
         playerAWins
       );
 
-      // Update ratings and tiers
-      await Promise.all([
-        prisma.user.update({
-          where: { id: round.match.playerAId },
-          data: {
-            rating: playerANewRating,
-            tier: getTier(playerANewRating),
-          },
-        }),
-        prisma.user.update({
-          where: { id: round.match.playerBId || '' },
+      // Update only playerA (playerB is not a real user for bot matches)
+      await prisma.user.update({
+        where: { id: round.match.playerAId },
+        data: {
+          rating: playerANewRating,
+          tier: getTier(playerANewRating),
+        },
+      });
+
+      // Update playerB only if human vs human match
+      if (playerB) {
+        await prisma.user.update({
+          where: { id: round.match.playerBId! },
           data: {
             rating: playerBNewRating,
             tier: getTier(playerBNewRating),
           },
-        }),
-      ]);
+        });
+      }
 
       // Mark match as completed
       await prisma.match.update({
@@ -149,12 +176,14 @@ export async function POST(
         },
       });
 
-      await trackEvent(userId, 'match_finished', {
+      await trackEvent('match_completed', {
         matchId,
         playerAScore,
         playerBScore,
+        isBotMatch: round.match.isBotMatch,
+        durationMs: Date.now() - new Date(round.match.createdAt || new Date()).getTime(),
         winner: playerAWins ? round.match.playerAId : playerBWins ? round.match.playerBId : 'draw',
-      });
+      }, clientId);
 
       return NextResponse.json({
         matchComplete: true,

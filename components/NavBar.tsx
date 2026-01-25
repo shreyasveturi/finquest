@@ -1,8 +1,15 @@
+"use client";
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function NavBar() {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const handleChangeUsername = () => {
+    try {
+      localStorage.removeItem('scio_username');
+      router.push('/play');
+    } catch {}
+  };
 
   return (
     <nav className="w-full bg-white border-b border-neutral-200">
@@ -13,25 +20,23 @@ export default function NavBar() {
 
         <div className="flex items-center gap-4 md:gap-6 flex-wrap">
           <Link
+            href="/leaderboard"
+            className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 transition-all duration-150 ease-out hover:underline underline-offset-4"
+          >
+            Leaderboard
+          </Link>
+          <Link
             href="/play"
             className="text-sm md:text-base text-white bg-blue-600 px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors duration-150 ease-out active:scale-[0.98] active:transition-transform"
           >
             ⚔️ Play
           </Link>
-          <Link
-            href="/admin/metrics"
+          <button
+            onClick={handleChangeUsername}
             className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 transition-all duration-150 ease-out hover:underline underline-offset-4"
           >
-            Metrics
-          </Link>
-          {session ? (
-            <button
-              onClick={() => signOut()}
-              className="text-sm md:text-base text-neutral-700 hover:text-neutral-900 transition-all duration-150 ease-out hover:underline underline-offset-4"
-            >
-              Sign out
-            </button>
-          ) : null}
+            Change username
+          </button>
         </div>
       </div>
     </nav>

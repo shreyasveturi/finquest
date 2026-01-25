@@ -1,113 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-/**
- * GET /api/admin/metrics
- * Calculate key metrics for dashboard
- */
+function median(values: number[]) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
 export async function GET(req: NextRequest) {
   try {
-    // Get all matches from last 7 days
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const [
-      allMatches,
-      allUsers,
-      allRounds,
-      allEvents,
-    ] = await Promise.all([
-      prisma.match.findMany({
-        where: {
-          createdAt: { gte: sevenDaysAgo },
-        },
-        include: {
-          rounds: true,
-        },
-      }),
-      prisma.user.findMany(),
-      prisma.matchRound.findMany({
-        where: {
-          createdAt: { gte: sevenDaysAgo },
-        },
-      }),
+    const [events, matches, users] = await Promise.all([
       prisma.event.findMany({
-        where: {
-          createdAt: { gte: sevenDaysAgo },
-        },
+        where: { createdAt: { gte: sevenDaysAgo } },
       }),
+      prisma.match.findMany({
+        where: { createdAt: { gte: sevenDaysAgo } },
+      }),
+      prisma.user.count(),
     ]);
 
-    // 1. Matches per active user (7 days)
-    const activeUserIds = new Set(allMatches.flatMap(m => [m.playerAId, m.playerBId]));
-    const matchesPerUser = activeUserIds.size > 0 
-      ? (allMatches.length / activeUserIds.size).toFixed(2)
-      : '0';
+    const matchesStarted = events.filter(e => e.eventName === 'match_started');
+    const matchesCompleted = events.filter(e => e.eventName === 'match_completed');
+    const playAgainClicks = events.filter(e => e.eventName === 'play_again_clicked');
+    const queueMatched = events.filter(e => e.eventName === 'queue_matched');
 
-    // 2. Completion rate (rounds started vs completed)
-    const totalRounds = allRounds.length;
-    const completedRounds = allRounds.filter(r => r.playerAAnswer !== null && r.playerBAnswer !== null).length;
-    const completionRate = totalRounds > 0 
-      ? ((completedRounds / totalRounds) * 100).toFixed(1)
-      : '0';
+    const activeUserIds = new Set(
+      events
+        .filter(e => e.eventName === 'match_started' || e.eventName === 'match_completed')
+        .map(e => e.userId)
+        .filter(Boolean) as string[]
+    );
 
-    // 3. Average queue time (from user_joined_queue to match_started events)
-    const queueEvents = allEvents.filter(e => e.eventName === 'user_joined_queue');
-    const matchStartEvents = allEvents.filter(e => e.eventName === 'match_started');
-    const avgQueueTime = queueEvents.length > 0 
-      ? (8 + Math.random() * 4).toFixed(1)
-      : '0'; // Estimate 8-12s based on timeout
+    const matchesPerActiveUser = activeUserIds.size
+      ? matchesStarted.length / activeUserIds.size
+      : 0;
 
-    // 4. Bot match percentage
-    const botMatches = allMatches.filter(m => m.isBotMatch).length;
-    const botMatchPercent = allMatches.length > 0
-      ? ((botMatches / allMatches.length) * 100).toFixed(1)
-      : '0';
+    const completionRate = matchesStarted.length
+      ? matchesCompleted.length / matchesStarted.length
+      : 0;
 
-    // 5. Re-queue rate (users with multiple matches)
-    const userMatchCounts: Record<string, number> = {};
-    allMatches.forEach(m => {
-      userMatchCounts[m.playerAId] = (userMatchCounts[m.playerAId] || 0) + 1;
-      if (m.playerBId) {
-        userMatchCounts[m.playerBId] = (userMatchCounts[m.playerBId] || 0) + 1;
-      }
+    const waitTimes = queueMatched
+      .map(e => {
+        try {
+          const parsed = e.properties ? JSON.parse(e.properties) : {};
+          return typeof parsed.waitMs === 'number' ? parsed.waitMs : null;
+        } catch {
+          return null;
+        }
+      })
+      .filter((v): v is number => v !== null);
+
+    const medianQueueTimeMs = median(waitTimes);
+
+    const botMatches = matches.filter(m => m.isBotMatch).length;
+    const botMatchRate = matches.length ? botMatches / matches.length : 0;
+
+    const reQueueRate = matchesCompleted.length
+      ? playAgainClicks.length / matchesCompleted.length
+      : 0;
+
+    const topPlayers = await prisma.user.findMany({
+      orderBy: { rating: 'desc' },
+      take: 10,
+      select: { id: true, name: true, rating: true, tier: true },
     });
-    const reQueueCount = Object.values(userMatchCounts).filter(c => c > 1).length;
-    const reQueueRate = activeUserIds.size > 0
-      ? ((reQueueCount / activeUserIds.size) * 100).toFixed(1)
-      : '0';
-
-    // 6. Average rating
-    const avgRating = allUsers.length > 0
-      ? (allUsers.reduce((sum, u) => sum + u.rating, 0) / allUsers.length).toFixed(0)
-      : '1200';
-
-    // 7. Top players (by rating)
-    const topPlayers = allUsers
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 10)
-      .map((u, i) => ({
-        rank: i + 1,
-        id: u.id,
-        rating: u.rating,
-        tier: u.tier,
-      }));
 
     return NextResponse.json({
       metrics: {
-        matchesPerUser: parseFloat(matchesPerUser),
-        completionRate: parseFloat(completionRate),
-        avgQueueTime: parseFloat(avgQueueTime),
-        botMatchPercent: parseFloat(botMatchPercent),
-        reQueueRate: parseFloat(reQueueRate),
-        avgRating: parseInt(avgRating),
+        matchesPerActiveUser,
+        completionRate,
+        medianQueueTimeMs,
+        botMatchRate,
+        reQueueRate,
         topPlayers,
       },
       summary: {
-        totalMatches: allMatches.length,
+        totalMatches: matches.length,
         activeUsers: activeUserIds.size,
-        totalUsers: allUsers.length,
-        totalRounds,
-        completedRounds,
+        totalUsers: users,
       },
     });
   } catch (error) {

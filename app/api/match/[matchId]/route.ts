@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -11,12 +10,9 @@ export async function GET(
   { params }: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { matchId } = await params;
+    const { searchParams } = new URL(req.url);
+    const clientId = searchParams.get('clientId');
 
     const match = await prisma.match.findUnique({
       where: { id: matchId },
@@ -37,7 +33,7 @@ export async function GET(
     }
 
     // Verify user is in this match
-    if (match.playerAId !== session.user.id && match.playerBId !== session.user.id) {
+    if (!clientId || (match.playerAId !== clientId && match.playerBId !== clientId)) {
       return NextResponse.json(
         { error: 'Not a player in this match' },
         { status: 403 }

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { trackEvent } from '@/lib/events';
 
 /**
@@ -8,15 +7,13 @@ import { trackEvent } from '@/lib/events';
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { clientId } = await req.json();
+    if (!clientId) {
+      return NextResponse.json({ error: 'clientId required' }, { status: 400 });
     }
 
-    const userId = session.user.id;
-
     // Track event
-    await trackEvent(userId, 'user_left_queue');
+    await trackEvent('user_left_queue', undefined, clientId);
 
     return NextResponse.json({
       status: 'cancelled',

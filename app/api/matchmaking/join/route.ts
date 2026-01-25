@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { findHumanOpponent, getMatchmakingTimeout } from '@/lib/matchmaking';
 import { getBotAnswer } from '@/lib/bot-logic';
@@ -12,76 +11,26 @@ import { trackEvent } from '@/lib/events';
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { clientId, username } = await req.json();
+    if (!clientId) {
+      return NextResponse.json({ error: 'clientId required' }, { status: 400 });
     }
 
-    const userId = session.user.id;
-
-    // Get user with current rating
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    // Upsert user with provided identity
+    const user = await prisma.user.upsert({
+      where: { id: clientId },
+      update: username ? { name: username } : {},
+      create: {
+        id: clientId,
+        name: username || null,
+      },
     });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Check if already in queue
-    const existingInQueue = await prisma.$queryRaw`
-      SELECT * FROM "_MatchmakingQueue" WHERE "userId" = ${userId} AND "createdAt" > datetime('now', '-2 minutes')
-    `;
-
-    if ((existingInQueue as any[]).length > 0) {
-      return NextResponse.json(
-        { error: 'Already in queue' },
-        { status: 400 }
-      );
-    }
+    const userId = user.id;
 
     const queueStartTime = Date.now();
-    const timeoutMs = getMatchmakingTimeout();
 
     // Track event
-    await trackEvent(userId, 'user_joined_queue', { rating: user.rating });
-
-    // Set a timeout to create bot match if no opponent found
-    setTimeout(async () => {
-      const opponent = await findHumanOpponent(userId, user.rating, queueStartTime);
-
-      if (!opponent) {
-        // Create bot match
-        const questions = await prisma.question.findMany({
-          take: 5,
-          orderBy: { id: 'asc' }, // Deterministic selection
-        });
-
-        const match = await prisma.match.create({
-          data: {
-            playerAId: userId,
-            isBotMatch: true,
-            status: 'in_progress',
-          },
-        });
-
-        // Create match rounds separately
-        await Promise.all(
-          questions.map((q, index) =>
-            prisma.matchRound.create({
-              data: {
-                matchId: match.id,
-                roundIndex: index,
-                questionId: q.id,
-                correctIndex: q.correctIndex,
-              },
-            })
-          )
-        );
-
-        await trackEvent(userId, 'bot_match_created', { matchId: match.id });
-      }
-    }, timeoutMs);
+    await trackEvent('queue_joined', { rating: user.rating }, userId);
 
     // Try to find opponent immediately
     const opponent = await findHumanOpponent(userId, user.rating, queueStartTime);
@@ -115,22 +64,32 @@ export async function POST(req: NextRequest) {
         )
       );
 
-      await trackEvent(userId, 'match_started', {
+      await trackEvent('queue_matched', {
+        matchId: match.id,
+        waitMs: Date.now() - queueStartTime,
+        opponentType: 'human',
+        opponent,
+      }, userId);
+
+      await trackEvent('match_started', {
         matchId: match.id,
         opponent,
-      });
+        isBotMatch: false,
+      }, userId);
 
       return NextResponse.json({
         matchId: match.id,
         status: 'matched',
+        opponentType: 'human',
       });
     }
 
-    // Return queue ID for polling
+    // No human opponent found - return queued status
+    // Client will poll or offer user choice to play bot
     return NextResponse.json({
       queueId: userId,
       status: 'queued',
-      timeoutMs,
+      opponentType: 'human',
     });
   } catch (error) {
     console.error('Matchmaking error:', error);

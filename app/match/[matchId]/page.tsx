@@ -1,8 +1,6 @@
 'use client';
-
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import Button from '@/components/Button';
 
 interface Question {
@@ -29,8 +27,10 @@ interface Match {
   isBotMatch: boolean;
 }
 
-export default function MatchPage({ params }: { params: { matchId: string } }) {
-  const { data: session } = useSession();
+export default function MatchPage() {
+  const params = useParams();
+  const rawMatchId = params?.matchId;
+  const matchId = Array.isArray(rawMatchId) ? rawMatchId[0] : rawMatchId;
   const router = useRouter();
   const [match, setMatch] = useState<Match | null>(null);
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
@@ -43,10 +43,43 @@ export default function MatchPage({ params }: { params: { matchId: string } }) {
   // Fetch match data
   useEffect(() => {
     const fetchMatch = async () => {
+      if (!matchId) {
+        router.replace('/play');
+        return;
+      }
       try {
-        const res = await fetch(`/api/match/${params.matchId}`);
+        const clientId = localStorage.getItem('scio_client_id');
+        const res = await fetch(`/api/match/${matchId}?clientId=${clientId}`);
         const data = await res.json();
-        setMatch(data);
+        if (data?.error || !Array.isArray(data?.rounds)) {
+          setLoading(false);
+          return;
+        }
+        const normalizedRounds = data.rounds.map((r: any) => {
+          const opts = (() => {
+            if (Array.isArray(r.question?.options)) return r.question.options;
+            if (typeof r.question?.options === 'string') {
+              try {
+                const parsed = JSON.parse(r.question.options);
+                if (Array.isArray(parsed)) return parsed;
+              } catch {}
+            }
+            return [] as string[];
+          })();
+
+          return {
+            ...r,
+            question: r.question ? {
+              ...r.question,
+              options: opts,
+              prompt: r.question.prompt || '',
+              type: r.question.type || 'multiple-choice',
+              difficulty: r.question.difficulty || 'medium',
+            } : null,
+          };
+        });
+
+        setMatch({ ...data, rounds: normalizedRounds });
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch match:', err);
@@ -55,53 +88,51 @@ export default function MatchPage({ params }: { params: { matchId: string } }) {
     };
 
     fetchMatch();
-  }, [params.matchId]);
+  }, [matchId, router]);
 
-  // Timer
-  useEffect(() => {
-    if (!match || currentRoundIndex >= match.rounds.length || matchResult) return;
+  const handleSubmit = useCallback(async (answerOverride?: number) => {
+    if (!match || !matchId) return;
 
-    const interval = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          // Auto-submit if time runs out
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [match, currentRoundIndex, matchResult]);
-
-  const handleSubmit = async () => {
-    if (selectedAnswer === null || !match) return;
+    const answer = answerOverride !== undefined ? answerOverride : selectedAnswer;
+    if (answer === null) return;
 
     setIsSubmitting(true);
     const round = match.rounds[currentRoundIndex];
 
     try {
-      const res = await fetch(`/api/match/${params.matchId}/submit`, {
+      const clientId = localStorage.getItem('scio_client_id');
+
+      const res = await fetch(`/api/match/${matchId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roundId: round.id,
-          playerAnswer: selectedAnswer,
+          playerAnswer: answer,
+          clientId,
         }),
       });
 
       const data = await res.json();
 
+      if (!res.ok) {
+        console.error('Submit failed:', data);
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log('Submit response:', data);
+
       if (data.matchComplete) {
-        // Match finished
+        console.log('Match complete, setting result:', data);
         setMatchResult(data);
       } else {
-        // Move to next round
         if (currentRoundIndex < match.rounds.length - 1) {
+          console.log('Moving to next round:', currentRoundIndex + 1);
           setCurrentRoundIndex(prev => prev + 1);
           setSelectedAnswer(null);
           setTimeRemaining(30);
+        } else {
+          console.log('No more rounds but matchComplete is false');
         }
       }
     } catch (err) {
@@ -109,7 +140,26 @@ export default function MatchPage({ params }: { params: { matchId: string } }) {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [match, matchId, currentRoundIndex, selectedAnswer]);
+
+  // Timer with auto-submit on expiry
+  useEffect(() => {
+    if (!match || currentRoundIndex >= match.rounds.length || matchResult) return;
+
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          // Auto-submit with selected answer or default to 0
+          const answerToSubmit = selectedAnswer !== null ? selectedAnswer : 0;
+          handleSubmit(answerToSubmit);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [match, currentRoundIndex, matchResult, handleSubmit]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading match...</div>;
@@ -180,6 +230,7 @@ export default function MatchPage({ params }: { params: { matchId: string } }) {
   }
 
   const question = round.question;
+  const options = Array.isArray(question.options) ? question.options : [];
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -216,7 +267,7 @@ export default function MatchPage({ params }: { params: { matchId: string } }) {
 
           {/* Options */}
           <div className="space-y-3">
-            {question.options.map((option, index) => (
+            {options.map((option, index) => (
               <button
                 key={index}
                 onClick={() => setSelectedAnswer(index)}
@@ -244,7 +295,7 @@ export default function MatchPage({ params }: { params: { matchId: string } }) {
 
           {/* Submit button */}
           <Button
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             disabled={selectedAnswer === null || isSubmitting}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-300 text-white font-semibold py-3"
           >

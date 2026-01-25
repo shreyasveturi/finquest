@@ -6,15 +6,14 @@ import Card from '@/components/Card';
 export const dynamic = 'force-dynamic';
 
 interface Metrics {
-  matchesPerUser: number;
+  matchesPerActiveUser: number;
   completionRate: number;
-  avgQueueTime: number;
-  botMatchPercent: number;
+  medianQueueTimeMs: number;
+  botMatchRate: number;
   reQueueRate: number;
-  avgRating: number;
   topPlayers: Array<{
-    rank: number;
     id: string;
+    name: string | null;
     rating: number;
     tier: string;
   }>;
@@ -24,8 +23,6 @@ interface Summary {
   totalMatches: number;
   activeUsers: number;
   totalUsers: number;
-  totalRounds: number;
-  completedRounds: number;
 }
 
 export default function MetricsPage() {
@@ -66,6 +63,18 @@ export default function MetricsPage() {
     );
   }
 
+  const nameCounts = metrics.topPlayers.reduce<Record<string, number>>((acc, p) => {
+    const base = p.name || 'Player';
+    acc[base] = (acc[base] || 0) + 1;
+    return acc;
+  }, {});
+
+  const displayName = (p: { id: string; name: string | null }) => {
+    const base = p.name || 'Player';
+    if ((nameCounts[base] || 0) <= 1) return base;
+    return `${base}#${p.id.slice(-4).toUpperCase()}`;
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto px-6 py-12">
@@ -85,38 +94,37 @@ export default function MetricsPage() {
             <p className="text-4xl font-bold text-green-600">{summary.activeUsers}</p>
           </Card>
           <Card className="p-6">
-            <p className="text-sm font-semibold text-neutral-600 mb-2">COMPLETION RATE</p>
-            <p className="text-4xl font-bold text-purple-600">{metrics.completionRate}%</p>
+            <p className="text-sm font-semibold text-neutral-600 mb-2">TOTAL USERS</p>
+            <p className="text-4xl font-bold text-purple-600">{summary.totalUsers}</p>
           </Card>
           <Card className="p-6">
-            <p className="text-sm font-semibold text-neutral-600 mb-2">AVG RATING</p>
-            <p className="text-4xl font-bold text-orange-600">{metrics.avgRating}</p>
+            <p className="text-sm font-semibold text-neutral-600 mb-2">COMPLETION RATE</p>
+            <p className="text-4xl font-bold text-orange-600">{(metrics.completionRate * 100).toFixed(1)}%</p>
           </Card>
         </div>
 
         {/* Key metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <Card className="p-6">
-            <p className="text-sm font-semibold text-neutral-600 mb-3">MATCHES/ACTIVE USER</p>
+            <p className="text-sm font-semibold text-neutral-600 mb-3">MATCHES / ACTIVE USER</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold text-blue-600">{metrics.matchesPerUser.toFixed(1)}</p>
-              <p className="text-sm text-neutral-500">matches</p>
+              <p className="text-3xl font-bold text-blue-600">{metrics.matchesPerActiveUser.toFixed(2)}</p>
+              <p className="text-sm text-neutral-500">avg matches</p>
             </div>
           </Card>
 
           <Card className="p-6">
-            <p className="text-sm font-semibold text-neutral-600 mb-3">AVG QUEUE TIME</p>
+            <p className="text-sm font-semibold text-neutral-600 mb-3">MEDIAN QUEUE TIME</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold text-green-600">{metrics.avgQueueTime.toFixed(1)}</p>
+              <p className="text-3xl font-bold text-green-600">{(metrics.medianQueueTimeMs / 1000).toFixed(1)}</p>
               <p className="text-sm text-neutral-500">seconds</p>
             </div>
           </Card>
 
           <Card className="p-6">
-            <p className="text-sm font-semibold text-neutral-600 mb-3">BOT MATCH %</p>
+            <p className="text-sm font-semibold text-neutral-600 mb-3">BOT MATCH RATE</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold text-purple-600">{metrics.botMatchPercent.toFixed(1)}</p>
-              <p className="text-sm text-neutral-500">percent</p>
+              <p className="text-3xl font-bold text-purple-600">{(metrics.botMatchRate * 100).toFixed(1)}%</p>
             </div>
           </Card>
         </div>
@@ -125,19 +133,16 @@ export default function MetricsPage() {
           <Card className="p-6">
             <p className="text-sm font-semibold text-neutral-600 mb-3">RE-QUEUE RATE</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold text-orange-600">{metrics.reQueueRate.toFixed(1)}</p>
-              <p className="text-sm text-neutral-500">percent</p>
+              <p className="text-3xl font-bold text-orange-600">{(metrics.reQueueRate * 100).toFixed(1)}%</p>
+              <p className="text-sm text-neutral-500">play again / match completed</p>
             </div>
-            <p className="text-xs text-neutral-500 mt-2">
-              Users playing 2+ matches
-            </p>
           </Card>
 
           <Card className="p-6">
-            <p className="text-sm font-semibold text-neutral-600 mb-3">ROUND COMPLETION</p>
+            <p className="text-sm font-semibold text-neutral-600 mb-3">MATCH COMPLETION RATE</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold text-green-600">{summary.completedRounds}</p>
-              <p className="text-sm text-neutral-500">of {summary.totalRounds} completed</p>
+              <p className="text-3xl font-bold text-green-600">{(metrics.completionRate * 100).toFixed(1)}%</p>
+              <p className="text-sm text-neutral-500">completed vs started</p>
             </div>
           </Card>
         </div>
@@ -146,15 +151,15 @@ export default function MetricsPage() {
         <Card className="p-6">
           <h2 className="text-2xl font-bold text-neutral-900 mb-6">Top Players</h2>
           <div className="space-y-3">
-            {metrics.topPlayers.map(player => (
+            {metrics.topPlayers.map((player, index) => (
               <div
                 key={player.id}
                 className="flex items-center justify-between p-4 rounded-lg bg-neutral-50 hover:bg-neutral-100 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  <div className="font-semibold text-neutral-900 min-w-8">{player.rank}</div>
+                  <div className="font-semibold text-neutral-900 min-w-8">{index + 1}</div>
                   <div>
-                    <p className="font-semibold text-neutral-900">Player {player.id.slice(0, 8)}</p>
+                    <p className="font-semibold text-neutral-900">{displayName(player)}</p>
                     <p className="text-sm text-neutral-600 capitalize">{player.tier}</p>
                   </div>
                 </div>

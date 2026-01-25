@@ -226,7 +226,7 @@ export default function Home() {
             </div>
 
             <p className="mt-8 text-sm text-gray-600">
-              Sign in with Google to get started
+              No sign up required
             </p>
           </div>
         </section>
