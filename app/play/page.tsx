@@ -57,11 +57,11 @@ export default function PlayPage() {
   const handleJoinQueue = async () => {
     setError(null);
     setQueueExpired(false);
+    setIsQueued(true);
+    setTimeRemaining(12);
     await logEvent('cta_start_match_clicked');
     const ident = ensureIdentity();
     if (!ident) return;
-    setIsQueued(true);
-    setTimeRemaining(12);
 
     try {
       const res = await fetch('/api/matchmaking/join', { 
@@ -80,19 +80,24 @@ export default function PlayPage() {
       if (data.queueId) {
         setCurrentQueueId(data.queueId);
         // In queue - start polling for human opponent
-        const pollInterval = setInterval(async () => {
+        let pollInterval: NodeJS.Timeout | null = null;
+        let timeoutId: NodeJS.Timeout | null = null;
+
+        pollInterval = setInterval(async () => {
           const statusRes = await fetch(`/api/matchmaking/status?queueId=${data.queueId}`);
           const statusData = await statusRes.json();
 
           if (statusData.matchId) {
-            clearInterval(pollInterval);
+            if (pollInterval) clearInterval(pollInterval);
+            if (timeoutId) clearTimeout(timeoutId);
             router.push(`/match/${statusData.matchId}`);
           }
         }, 750);
 
         // After 12 seconds, show user choice to play bot or keep waiting
-        setTimeout(() => {
-          clearInterval(pollInterval);
+        timeoutId = setTimeout(() => {
+          if (pollInterval) clearInterval(pollInterval);
+          console.log('Queue expired, showing bot option');
           setIsQueued(false);
           setQueueExpired(true);
         }, 12000);
