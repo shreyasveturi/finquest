@@ -41,6 +41,7 @@ export async function POST(
       where: { id: roundId },
       include: {
         question: true,
+        generatedQuestion: true,
         match: true,
       },
     });
@@ -93,7 +94,17 @@ export async function POST(
 
     // If bot match and this is playerA (human), generate bot answer immediately
     if (round.match.isBotMatch && isPlayerA) {
-      const botAnswer = getBotAnswer(round.questionId, round.question.difficulty);
+      const seedId = round.questionId ?? round.generatedQuestionId ?? round.id;
+      const difficultyStr = round.question?.difficulty ?? (
+        typeof round.generatedQuestion?.difficulty === 'number'
+          ? round.generatedQuestion!.difficulty <= 2
+            ? 'easy'
+            : round.generatedQuestion!.difficulty === 3
+              ? 'medium'
+              : 'hard'
+          : 'medium'
+      );
+      const botAnswer = getBotAnswer(seedId, difficultyStr);
       console.log(`[${requestId}] Generating bot answer`, { requestId, roundId, botAnswer });
       await prisma.matchRound.update({
         where: { id: roundId },

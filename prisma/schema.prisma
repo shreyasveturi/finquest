@@ -77,6 +77,22 @@ model Question {
   matchRounds MatchRound[]
 }
 
+model GeneratedQuestion {
+  id              String   @id @default(cuid())
+  prompt          String   // question stem
+  choicesJson     String   // JSON array of strings [4]
+  correctIndex    Int      // 0-3
+  explanation     String?
+  difficulty      Int?     // 1-5
+  topicTag        String?
+  createdAt       DateTime @default(now())
+  model           String   // e.g., "gpt-4o-mini"
+
+  matchRounds     MatchRound[]
+
+  @@index([createdAt])
+}
+
 model Match {
   id          String    @id @default(cuid())
   mode        String    @default("ranked") // "ranked" only for v0.1
@@ -95,18 +111,20 @@ model Match {
 }
 
 model MatchRound {
-  id              String    @id @default(cuid())
-  matchId         String
-  roundIndex      Int // 0-4 for 5 rounds
-  questionId      String
-  playerAAnswer   Int? // index of option selected
-  playerBAnswer   Int? // index of option selected
-  correctIndex    Int
-  endedAt         DateTime?
-  createdAt       DateTime  @default(now())
+  id                    String    @id @default(cuid())
+  matchId               String
+  roundIndex            Int       // 0-4 for 5 rounds
+  questionId            String?   // for fallback to seeded questions
+  generatedQuestionId   String?   // for AI-generated questions
+  playerAAnswer         Int? // index of option selected
+  playerBAnswer         Int? // index of option selected
+  correctIndex          Int
+  endedAt               DateTime?
+  createdAt             DateTime  @default(now())
 
-  match    Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  question Question @relation(fields: [questionId], references: [id])
+  match                Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  question             Question?          @relation(fields: [questionId], references: [id])
+  generatedQuestion    GeneratedQuestion? @relation(fields: [generatedQuestionId], references: [id])
 
   @@unique([matchId, roundIndex])
 }

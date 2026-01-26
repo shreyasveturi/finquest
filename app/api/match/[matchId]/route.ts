@@ -12,17 +12,15 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ matchId: string }> }
 ) {
-  const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+  const requestId = crypto.randomUUID().slice(0, 8);
+  const headers = new Headers({ 'x-request-id': requestId });
+
   try {
     const { matchId } = await params;
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get('clientId');
 
-    console.log(`[${requestId}] GET /api/match/:matchId`, {
-      requestId,
-      matchId,
-      clientId,
-    });
+    console.log(`[match-get ${requestId}] GET /api/match/${matchId} clientId=${clientId?.slice(0, 8)}`);
 
     const match = await prisma.match.findUnique({
       where: { id: matchId },
@@ -30,6 +28,7 @@ export async function GET(
         rounds: {
           include: {
             question: true,
+            generatedQuestion: true,
           },
           orderBy: {
             roundIndex: 'asc',
@@ -39,9 +38,14 @@ export async function GET(
     });
 
     if (!match) {
-      console.error(`[${requestId}] Match not found`, { requestId, matchId });
-      return NextResponse.json({ error: 'Match not found', requestId }, { status: 404 });
+      console.error(`[match-get ${requestId}] ✗ MATCH_NOT_FOUND matchId=${matchId}`);
+      return NextResponse.json(
+        { error: { code: 'MATCH_NOT_FOUND', message: 'Match not found', requestId } },
+        { status: 404, headers }
+      );
     }
+
+    console.log(`[match-get ${requestId}] ✓ Found match ${matchId} with ${match.rounds.length} rounds`);
 
     // Verify user is in this match
     if (!clientId || (match.playerAId !== clientId && match.playerBId !== clientId)) {
@@ -53,8 +57,8 @@ export async function GET(
         playerBId: match.playerBId,
       });
       return NextResponse.json(
-        { error: 'Not a player in this match', requestId },
-        { status: 403 }
+        { error: { code: 'FORBIDDEN', message: 'Not a player in this match', requestId } },
+        { status: 403, headers: { 'x-request-id': requestId } }
       );
     }
 
@@ -91,27 +95,82 @@ export async function GET(
       totalRounds: orderedRounds.length,
     });
 
-    const headers = new Headers({ 'x-request-id': requestId });
+    // Normalize rounds to a unified question payload
+    const normalizedRounds = orderedRounds.map((r) => {
+      let questionPayload: any = null;
+
+      if (r.generatedQuestion) {
+        // Parse choices from JSON
+        let choices: string[] = [];
+        try {
+          const parsed = JSON.parse(r.generatedQuestion.choicesJson);
+          if (Array.isArray(parsed)) choices = parsed as string[];
+        } catch {}
+
+        questionPayload = {
+          id: r.generatedQuestion.id,
+          prompt: r.generatedQuestion.prompt,
+          options: choices,
+          type: 'multiple-choice',
+          difficulty: (typeof r.generatedQuestion.difficulty === 'number') ? String(r.generatedQuestion.difficulty) : 'medium',
+        };
+      } else if (r.question) {
+        // Question model stores options as JSON string
+        let choices: string[] = [];
+        try {
+          const parsed = typeof r.question.options === 'string' ? JSON.parse(r.question.options) : r.question.options;
+          if (Array.isArray(parsed)) choices = parsed as string[];
+        } catch {}
+
+        questionPayload = {
+          id: r.question.id,
+          prompt: r.question.prompt,
+          options: choices,
+          type: r.question.type || 'multiple-choice',
+          difficulty: r.question.difficulty || 'medium',
+        };
+      }
+
+      return {
+        id: r.id,
+        roundIndex: r.roundIndex,
+        questionId: r.questionId ?? r.generatedQuestionId ?? undefined,
+        question: questionPayload,
+        playerAAnswer: r.playerAAnswer,
+        playerBAnswer: r.playerBAnswer,
+        correctIndex: r.correctIndex,
+        endedAt: r.endedAt,
+      };
+    });
+
+    console.log(`[match-get ${requestId}] ✓ Returning match data with ${normalizedRounds.length} normalized rounds`);
+
     return NextResponse.json(
       {
-        ...match,
+        id: match.id,
+        mode: match.mode,
+        status: match.status,
+        playerAId: match.playerAId,
+        playerBId: match.playerBId,
+        isBotMatch: match.isBotMatch,
+        createdAt: match.createdAt,
+        startedAt: match.startedAt,
+        endedAt: match.endedAt,
+        rounds: normalizedRounds,
         currentRoundIndex: activeIndex === -1 ? orderedRounds.length - 1 : activeIndex,
         roundStartAt,
         roundDurationMs,
         roundStatus,
         serverNow: now,
+        requestId,
       },
       { headers }
     );
   } catch (error) {
-    console.error(`[${requestId}] Fetch match error`, {
-      requestId,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error(`[match-get ${requestId}] ✗ Error:`, error);
     return NextResponse.json(
-      { error: 'Failed to fetch match', requestId },
-      { status: 500, headers: { 'x-request-id': requestId } }
+      { error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch match', requestId } },
+      { status: 500, headers }
     );
   }
 }

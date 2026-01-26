@@ -2,6 +2,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Button from '@/components/Button';
+import { apiFetch } from '@/lib/apiFetch';
 
 interface Question {
   id: string;
@@ -46,7 +47,36 @@ export default function MatchPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [matchResult, setMatchResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isPlayingAgain, setIsPlayingAgain] = useState(false);
   const finalizeInFlight = useRef(false);
+
+  // Handle Play Again button: start new match directly
+  const handlePlayAgain = useCallback(async () => {
+    setIsPlayingAgain(true);
+    try {
+      const clientId = localStorage.getItem('scio_client_id');
+      const username = localStorage.getItem('scio_username') || 'Player';
+
+      console.log('[PlayAgain] Starting new bot match...');
+      const { data, requestId } = await apiFetch<{ matchId: string; requestId: string }>(
+        '/api/bot-match/start',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId, username }),
+        }
+      );
+
+      console.log(`[PlayAgain] ✓ Match created: ${data.matchId} (req: ${requestId})`);
+
+      // Route directly to new match (no loading screen)
+      router.replace(`/match/${data.matchId}`);
+    } catch (error) {
+      console.error('[PlayAgain] ✗ Failed to start new match:', error);
+      alert('Failed to start new match. Please try again.');
+      setIsPlayingAgain(false);
+    }
+  }, [router]);
 
   // Normalize question options from JSON string to array
   const normalizeRounds = useCallback((rounds: any[]) => {
@@ -77,19 +107,31 @@ export default function MatchPage() {
 
   // Fetch match data
   useEffect(() => {
-    const fetchMatch = async () => {
+    const fetchMatch = async (retryCount = 0) => {
       if (!matchId) {
         router.replace('/play');
         return;
       }
       try {
         const clientId = localStorage.getItem('scio_client_id');
-        const res = await fetch(`/api/match/${matchId}?clientId=${clientId}`);
-        const data = await res.json();
-        if (data?.error || !Array.isArray(data?.rounds)) {
+        const endpoint = `/api/match/${matchId}?clientId=${clientId}`;
+        console.log(`[MatchPage] Fetching match ${matchId}`);
+
+        const { data, requestId } = await apiFetch<any>(endpoint);
+
+        console.log(`[MatchPage] ✓ Fetched match (req: ${requestId}) rounds=${data?.rounds?.length}`);
+
+        if (!Array.isArray(data?.rounds)) {
+          console.warn(`[MatchPage] No rounds in response`);
+          if (retryCount === 0) {
+            console.log(`[MatchPage] Retrying after 300ms...`);
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            return fetchMatch(1);
+          }
           setLoading(false);
           return;
         }
+
         const normalizedRounds = normalizeRounds(data.rounds);
 
         const m: Match = { ...data, rounds: normalizedRounds };
@@ -104,7 +146,12 @@ export default function MatchPage() {
         setCurrentRoundIndex(m.currentRoundIndex ?? 0);
         setLoading(false);
       } catch (err) {
-        console.error('Failed to fetch match:', err);
+        console.error('[MatchPage] ✗ Failed to fetch match:', err);
+        if (err instanceof Error && err.message.includes('MATCH_NOT_FOUND') && retryCount === 0) {
+          console.log(`[MatchPage] Retrying after 300ms...`);
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          return fetchMatch(1);
+        }
         setLoading(false);
       }
     };
@@ -310,7 +357,8 @@ export default function MatchPage() {
           </div>
 
           <Button
-            onClick={() => router.push('/play')}
+            disabled={isPlayingAgain}
+            onClick={handlePlayAgain}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
           >
             Play Again

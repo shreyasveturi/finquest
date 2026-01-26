@@ -1,7 +1,9 @@
 'use client';
+
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
+import { apiFetch } from '@/lib/apiFetch';
 
 export default function PlayPage() {
   const router = useRouter();
@@ -10,22 +12,28 @@ export default function PlayPage() {
   const [usernameInput, setUsernameInput] = useState('');
 
   useEffect(() => {
-    const existing = typeof window !== 'undefined' ? localStorage.getItem('scio_username') : null;
+    if (typeof window === 'undefined') return;
+    const existing = localStorage.getItem('scio_username');
     setNeedsUsername(!existing);
   }, []);
 
   const ensureIdentity = () => {
-    let clientId = typeof window !== 'undefined' ? localStorage.getItem('scio_client_id') : null;
-    let username = typeof window !== 'undefined' ? localStorage.getItem('scio_username') : null;
-    if (!clientId && typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return null;
+
+    let clientId = localStorage.getItem('scio_client_id');
+    let username = localStorage.getItem('scio_username');
+
+    if (!clientId) {
       clientId = crypto.randomUUID();
       localStorage.setItem('scio_client_id', clientId);
     }
-    if (!username && typeof window !== 'undefined') {
+
+    if (!username) {
       setNeedsUsername(true);
       return null;
     }
-    return { clientId: clientId!, username: username! };
+
+    return { clientId, username };
   };
 
   const logEvent = async (name: string, properties?: Record<string, any>) => {
@@ -34,7 +42,11 @@ export default function PlayPage() {
       await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, properties, clientId: ident?.clientId }),
+        body: JSON.stringify({
+          name,
+          properties,
+          clientId: ident?.clientId,
+        }),
       });
     } catch {}
   };
@@ -43,9 +55,13 @@ export default function PlayPage() {
     if (!usernameInput) return;
     if (usernameInput.length < 3 || usernameInput.length > 16) return;
     if (!/^[A-Za-z0-9_]+$/.test(usernameInput)) return;
-    const existingId = localStorage.getItem('scio_client_id') || crypto.randomUUID();
+
+    const existingId =
+      localStorage.getItem('scio_client_id') || crypto.randomUUID();
+
     localStorage.setItem('scio_client_id', existingId);
     localStorage.setItem('scio_username', usernameInput);
+
     setNeedsUsername(false);
     router.push('/play');
   };
@@ -53,130 +69,78 @@ export default function PlayPage() {
   const handlePlayBot = async () => {
     const ident = ensureIdentity();
     if (!ident) return;
+
     await logEvent('cta_play_vs_bot_clicked');
     setError(null);
 
-    const maxRetries = 2;
-    const backoffMs = [300, 800]; // ms delays for retries
-    let lastError: any = null;
-    let lastRequestId: string | null = null;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        if (attempt > 0) {
-          console.log(`[PlayBot] Retry attempt ${attempt}/${maxRetries}, waiting ${backoffMs[attempt - 1]}ms`);
-          await new Promise(resolve => setTimeout(resolve, backoffMs[attempt - 1]));
-        }
-
-        console.log(`[PlayBot] Attempt ${attempt + 1}/${maxRetries + 1}: POST /api/match/bot/start`, {
-          clientId: ident.clientId,
-          username: ident.username,
-        });
-
-        const res = await fetch('/api/match/bot/start', {
+    try {
+      const result = await apiFetch<{ matchId: string; requestId: string }>(
+        '/api/bot-match/start',
+        {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             clientId: ident.clientId,
             username: ident.username,
           }),
-        });
-
-        lastRequestId = res.headers.get('x-request-id');
-        const data = await res.json();
-
-        if (!res.ok) {
-          lastError = data;
-          console.error(`[PlayBot] Attempt ${attempt + 1} failed:`, {
-            status: res.status,
-            error: data.error,
-            requestId: lastRequestId,
-          });
-
-          // Only retry on network errors or 5xx; don't retry on 4xx client errors
-          if (res.status >= 400 && res.status < 500) {
-            throw new Error(`Client error (${res.status}): ${data.error?.message || 'Unknown error'}`);
-          }
-          // 5xx or network error; try again if retries remain
-          if (attempt < maxRetries) {
-            continue;
-          }
-          throw new Error(data.error?.message || 'Failed to start bot match');
         }
+      );
 
-        // Success
-        console.log(`[PlayBot] Match started successfully`, {
-          matchId: data.matchId,
-          requestId: lastRequestId,
-          attempt: attempt + 1,
-        });
+      await logEvent('bot_match_started', {
+        matchId: result.data.matchId,
+        requestId: result.requestId,
+      });
 
-        await logEvent('bot_match_started', {
-          matchId: data.matchId,
-          requestId: lastRequestId,
-        });
-
-        router.push(`/match/${data.matchId}`);
-        return;
-      } catch (err) {
-        lastError = err;
-        console.error(`[PlayBot] Attempt ${attempt + 1} exception:`, {
-          error: err instanceof Error ? err.message : String(err),
-          requestId: lastRequestId,
-        });
-
-        // If last attempt or client error, stop retrying
-        if (attempt >= maxRetries || (err instanceof Error && err.message.includes('Client error'))) {
-          break;
-        }
-      }
+      router.push('/match/' + result.data.matchId);
+    } catch (err) {
+      console.error('[PlayBot] Failed to start bot match', err);
+      setError('Failed to connect to match against the bot. Try again');
     }
-
-    // All retries exhausted
-    let errorMsg = 'Failed to connect to match against the bot. Try again';
-    if (lastRequestId) {
-      errorMsg += ` (ref: ${lastRequestId.slice(0, 8)})`;
-    }
-    console.error(`[PlayBot] All retries exhausted`, {
-      lastError,
-      requestId: lastRequestId,
-    });
-    setError(errorMsg);
   };
 
-
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-start px-6 pt-8 pb-6 sm:pt-12 sm:pb-8">
-      <div className="w-full max-w-md flex flex-col min-h-[calc(100vh-8rem)] sm:min-h-[calc(100vh-10rem)] justify-start">
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex flex-col px-6 py-10 max-w-lg mx-auto w-full">
         {needsUsername ? (
           <div className="text-center space-y-8 flex-1 flex flex-col justify-center">
             <div>
-              <h1 className="text-4xl font-bold text-neutral-900 mb-2">Choose a username</h1>
-              <p className="text-lg text-neutral-600">Pick a name and play.</p>
+              <h1 className="text-4xl font-bold text-neutral-900 mb-2">
+                Choose a username
+              </h1>
+              <p className="text-lg text-neutral-600">
+                Pick a name and play.
+              </p>
             </div>
+
             <div className="space-y-3">
               <input
                 type="text"
                 value={usernameInput}
-                onChange={e => setUsernameInput(e.target.value)}
+                onChange={(e) => setUsernameInput(e.target.value)}
                 placeholder="3–16 characters, letters/numbers/_"
                 className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <Button onClick={handleSetUsername} className="w-full">Start Playing</Button>
+              <Button onClick={handleSetUsername} className="w-full">
+                Start Playing
+              </Button>
             </div>
           </div>
         ) : (
           <div className="text-center space-y-8 flex-1 flex flex-col justify-between">
             <div className="flex-1 flex flex-col justify-start pt-4">
               <div className="mb-8">
-                <h1 className="text-4xl font-bold text-neutral-900 mb-2">⚔️ Ready to Battle?</h1>
+                <h1 className="text-4xl font-bold text-neutral-900 mb-2">
+                  Ready to Battle?
+                </h1>
                 <p className="text-lg text-neutral-600">
                   Play against our adaptive AI.
                 </p>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-3 text-left">
-                <h3 className="font-semibold text-neutral-900">How it works:</h3>
+                <h3 className="font-semibold text-neutral-900">
+                  How it works:
+                </h3>
                 <ul className="text-sm text-neutral-700 space-y-2">
                   <li>✓ 5 reasoning questions</li>
                   <li>✓ 20-30 seconds per question</li>

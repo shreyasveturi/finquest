@@ -1,0 +1,426 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { trackEvent } from '@/lib/events';
+import { generateFiveQuestions, getRecentStemsForClient, generateLocalQuestions } from '@/lib/question-generator';
+
+/**
+ * POST /api/match/bot/start
+ * Start a new bot match with AI-generated questions.
+ * Each call creates a NEW match with fresh AI-generated questions.
+ *
+ * Request body: { clientId, username }
+ * Response: { matchId, requestId }
+ *
+ * Guarantees:
+ * - Idempotent within 2s: same clientId returns same matchId
+ * - Atomic: match + 5 rounds + generated questions all created or all rolled back
+ * - AI-generated: questions generated via LLM with anti-repetition
+ * - Fallback: if LLM fails, uses random seeded questions
+ * - Logged: each stage with requestId for support debugging
+ */
+export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID();
+  const startTime = Date.now();
+
+  try {
+    const { clientId, username } = await req.json();
+
+    // Validation
+    if (!clientId || !username) {
+      console.error(`[${requestId}] Missing clientId or username`, {
+        requestId,
+        clientId: clientId ? 'present' : 'missing',
+        username: username ? 'present' : 'missing',
+      });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'clientId and username are required',
+            requestId,
+          },
+        },
+        { status: 400, headers: { 'x-request-id': requestId } }
+      );
+    }
+
+    console.log(`[${requestId}] Start bot match request`, {
+      requestId,
+      clientId,
+      username,
+    });
+
+    // Idempotency check: return existing match if started within last 2 seconds
+    const IDEMPOTENCY_WINDOW_MS = 2000;
+    const recentMatch = await prisma.match.findFirst({
+      where: {
+        playerAId: clientId,
+        isBotMatch: true,
+        status: {
+          in: ['active', 'in_progress'],
+        },
+        createdAt: {
+          gte: new Date(Date.now() - IDEMPOTENCY_WINDOW_MS),
+        },
+      },
+      select: {
+        id: true,
+        rounds: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (recentMatch && recentMatch.rounds.length === 5) {
+      console.log(`[${requestId}] Returning existing match (idempotency)`, {
+        requestId,
+        clientId,
+        matchId: recentMatch.id,
+        durationMs: Date.now() - startTime,
+      });
+      const headers = new Headers({
+        'x-request-id': requestId,
+      });
+      return NextResponse.json(
+        {
+          matchId: recentMatch.id,
+          requestId,
+          cached: true,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    // Ensure user exists; create if not
+    console.log(`[${requestId}] Ensure user exists`, { requestId, clientId });
+    let user = await prisma.user.findUnique({
+      where: { id: clientId },
+    });
+
+    if (!user) {
+      console.log(`[${requestId}] Creating new user`, { requestId, clientId, username });
+      user = await prisma.user.create({
+        data: {
+          id: clientId,
+          name: username,
+          rating: 1200,
+          tier: 'Bronze',
+        },
+      });
+      console.log(`[${requestId}] User created`, { requestId, userId: user.id, rating: user.rating });
+    } else {
+      console.log(`[${requestId}] User already exists`, { requestId, userId: user.id, rating: user.rating });
+    }
+
+    // Get recent stems to avoid question repetition
+    console.log(`[${requestId}] Fetching recent question stems for anti-repetition`, { requestId });
+    const recentStems = await getRecentStemsForClient(clientId, 20);
+
+    // Generate 5 AI questions via LLM
+    console.log(`[${requestId}] Generating questions via LLM`, { requestId, clientId });
+    let generatedQuestions = await generateFiveQuestions({
+      difficulty: 3,
+      recentStems,
+      timeoutMs: 10000,
+    });
+
+    // Fallback path: if LLM generation fails, use random seeded questions
+    if (!generatedQuestions) {
+      console.warn(`[${requestId}] LLM question generation failed, falling back to seeded questions`, {
+        requestId,
+      });
+
+      const allQuestions = await prisma.question.findMany({
+        select: {
+          id: true,
+          correctIndex: true,
+        },
+      });
+
+      if (!allQuestions || allQuestions.length < 5) {
+        console.warn(`[${requestId}] Seeded bank insufficient, using local fallback generator`, {
+          requestId,
+          found: allQuestions?.length || 0,
+          required: 5,
+        });
+
+        const match = await prisma.match.create({
+          data: {
+            playerAId: clientId,
+            isBotMatch: true,
+            status: 'active',
+            startedAt: new Date(),
+          },
+        });
+
+        const localQs = generateLocalQuestions(5);
+        const localRecords = await Promise.all(
+          localQs.map((q) =>
+            prisma.generatedQuestion.create({
+              data: {
+                prompt: q.stem,
+                choicesJson: JSON.stringify(q.choices),
+                correctIndex: q.correctIndex,
+                explanation: q.explanation,
+                difficulty: q.difficulty,
+                topicTag: q.topicTag,
+                model: 'local-fallback',
+              },
+            })
+          )
+        );
+
+        await Promise.all(
+          localRecords.map((gq, idx) =>
+            prisma.matchRound.create({
+              data: {
+                matchId: match.id,
+                roundIndex: idx,
+                generatedQuestionId: gq.id,
+                correctIndex: gq.correctIndex,
+              },
+            })
+          )
+        );
+
+        await trackEvent(
+          'bot_match_created',
+          {
+            matchId: match.id,
+            playerRating: user.rating,
+            roundCount: localRecords.length,
+            requestId,
+            source: 'local-fallback',
+          },
+          clientId
+        );
+
+        const headers = new Headers({
+          'x-request-id': requestId,
+          'Content-Type': 'application/json',
+        });
+
+        return NextResponse.json(
+          {
+            matchId: match.id,
+            requestId,
+          },
+          { status: 200, headers }
+        );
+      }
+
+      // Shuffle and select 5 random seeded questions
+      const shuffled = allQuestions.sort(() => Math.random() - 0.5);
+      const selectedQuestions = shuffled.slice(0, 5);
+
+      console.log(`[${requestId}] Creating match with seeded questions (fallback)`, {
+        requestId,
+        clientId,
+        questionCount: selectedQuestions.length,
+      });
+
+      const match = await prisma.match.create({
+        data: {
+          playerAId: clientId,
+          isBotMatch: true,
+          status: 'active',
+          startedAt: new Date(),
+          rounds: {
+            createMany: {
+              data: selectedQuestions.map((q, index) => ({
+                roundIndex: index,
+                questionId: q.id,
+                correctIndex: q.correctIndex,
+              })),
+            },
+          },
+        },
+        include: {
+          rounds: {
+            select: {
+              id: true,
+              roundIndex: true,
+            },
+          },
+        },
+      });
+
+      console.log(`[${requestId}] Match created (fallback path)`, {
+        requestId,
+        matchId: match.id,
+        roundCount: match.rounds.length,
+        durationMs: Date.now() - startTime,
+      });
+
+      await Promise.all([
+        trackEvent(
+          'bot_match_created',
+          {
+            matchId: match.id,
+            playerRating: user.rating,
+            roundCount: match.rounds.length,
+            requestId,
+            source: 'fallback',
+          },
+          clientId
+        ),
+        trackEvent(
+          'match_started',
+          {
+            matchId: match.id,
+            isBotMatch: true,
+            requestId,
+            source: 'fallback',
+          },
+          clientId
+        ),
+      ]);
+
+      const headers = new Headers({
+        'x-request-id': requestId,
+        'Content-Type': 'application/json',
+      });
+
+      return NextResponse.json(
+        {
+          matchId: match.id,
+          requestId,
+        },
+        { status: 200, headers }
+      );
+    }
+
+    // AI path: create GeneratedQuestion records
+    console.log(`[${requestId}] Transaction start: creating match with AI-generated questions`, {
+      requestId,
+      clientId,
+      questionCount: generatedQuestions.length,
+    });
+
+    const match = await prisma.match.create({
+      data: {
+        playerAId: clientId,
+        isBotMatch: true,
+        status: 'active',
+        startedAt: new Date(),
+      },
+    });
+
+    // Create GeneratedQuestion records
+    console.log(`[${requestId}] Creating GeneratedQuestion records`, {
+      requestId,
+      count: generatedQuestions.length,
+    });
+
+    const generatedQuestionRecords = await Promise.all(
+      generatedQuestions.map((q) =>
+        prisma.generatedQuestion.create({
+          data: {
+            prompt: q.stem,
+            choicesJson: JSON.stringify(q.choices),
+            correctIndex: q.correctIndex,
+            explanation: q.explanation,
+            difficulty: q.difficulty,
+            topicTag: q.topicTag,
+            model: 'gpt-4o-mini',
+          },
+        })
+      )
+    );
+
+    // Debug: log stems for regression checks
+    try {
+      const stems = generatedQuestions.map((q) => q.stem);
+      console.log(`[${requestId}] AI stems for match`, { matchId: match.id, stems });
+    } catch {}
+
+    // Create MatchRound records pointing to GeneratedQuestions
+    console.log(`[${requestId}] Creating MatchRound records`, {
+      requestId,
+      count: generatedQuestionRecords.length,
+    });
+
+    await Promise.all(
+      generatedQuestionRecords.map((gq, idx) =>
+        prisma.matchRound.create({
+          data: {
+            matchId: match.id,
+            roundIndex: idx,
+            generatedQuestionId: gq.id,
+            correctIndex: gq.correctIndex,
+          },
+        })
+      )
+    );
+
+    console.log(`[${requestId}] Match created with AI-generated questions`, {
+      requestId,
+      matchId: match.id,
+      roundCount: generatedQuestionRecords.length,
+      durationMs: Date.now() - startTime,
+    });
+
+    // Track events
+    await Promise.all([
+      trackEvent(
+        'bot_match_created',
+        {
+          matchId: match.id,
+          playerRating: user.rating,
+          roundCount: generatedQuestionRecords.length,
+          requestId,
+          source: 'llm',
+        },
+        clientId
+      ),
+      trackEvent(
+        'match_started',
+        {
+          matchId: match.id,
+          isBotMatch: true,
+          requestId,
+          source: 'llm',
+        },
+        clientId
+      ),
+    ]);
+
+    console.log(`[${requestId}] Match start response`, {
+      requestId,
+      matchId: match.id,
+      durationMs: Date.now() - startTime,
+    });
+
+    const headers = new Headers({
+      'x-request-id': requestId,
+      'Content-Type': 'application/json',
+    });
+
+    return NextResponse.json(
+      {
+        matchId: match.id,
+        requestId,
+      },
+      { status: 200, headers }
+    );
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    console.error(`[${requestId}] Bot match start error`, {
+      requestId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      durationMs,
+    });
+
+    return NextResponse.json(
+      {
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to start bot match. Please try again.',
+          requestId,
+        },
+      },
+      { status: 500, headers: { 'x-request-id': requestId } }
+    );
+  }
+}

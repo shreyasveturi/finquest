@@ -39,7 +39,7 @@ export async function POST(
       where: { id: matchId },
       include: {
         rounds: {
-          include: { question: true },
+          include: { question: true, generatedQuestion: true },
           orderBy: { roundIndex: 'asc' },
         },
       },
@@ -112,7 +112,17 @@ export async function POST(
 
       // If bot match and bot hasn't answered, generate answer now
       if (match.isBotMatch && currentRound.playerBAnswer === null) {
-        const botAnswer = getBotAnswer(currentRound.questionId, currentRound.question.difficulty);
+        const seedId = currentRound.questionId ?? currentRound.generatedQuestionId ?? currentRound.id;
+        const difficultyStr = currentRound.question?.difficulty ?? (
+          typeof currentRound.generatedQuestion?.difficulty === 'number'
+            ? currentRound.generatedQuestion!.difficulty <= 2
+              ? 'easy'
+              : currentRound.generatedQuestion!.difficulty === 3
+                ? 'medium'
+                : 'hard'
+            : 'medium'
+        );
+        const botAnswer = getBotAnswer(seedId, difficultyStr);
         console.log(`[${requestId}] Generating bot answer for timeout`, { requestId, botAnswer });
         await prisma.matchRound.update({
           where: { id: currentRound.id },

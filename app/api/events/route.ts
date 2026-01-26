@@ -3,13 +3,13 @@ import { trackEvent } from '@/lib/events';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, properties, clientId } = await req.json();
+    const { name, properties } = await req.json();
 
     if (!name) {
       return NextResponse.json({ error: 'name required' }, { status: 400 });
     }
 
-    await trackEvent(name, properties, clientId || null);
+    await trackEvent(name, properties, null);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Event tracking error:', error);
