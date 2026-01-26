@@ -9,20 +9,30 @@ const ROUND_DURATION_MS = 25000; // 25s per round
 /**
  * POST /api/match/[matchId]/submit
  * Submit round answers for a match
- * Request: { roundId, playerAnswer }
+ * Request: { roundId, playerAnswer, clientId }
  */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ matchId: string }> }
 ) {
+  const requestId = crypto.randomUUID();
   try {
     const { matchId } = await params;
     const { roundId, playerAnswer, clientId } = await req.json();
     
+    console.log(`[${requestId}] POST /api/match/:matchId/submit`, {
+      requestId,
+      matchId,
+      roundId,
+      clientId,
+      playerAnswer,
+    });
+
     if (!clientId || !roundId || playerAnswer === undefined) {
+      console.error(`[${requestId}] Missing required fields`, { requestId, clientId, roundId, playerAnswer });
       return NextResponse.json(
-        { error: 'clientId, roundId, and playerAnswer required' },
-        { status: 400 }
+        { error: 'clientId, roundId, and playerAnswer required', requestId },
+        { status: 400, headers: { 'x-request-id': requestId } }
       );
     }
 
@@ -36,24 +46,27 @@ export async function POST(
     });
 
     if (!round) {
+      console.error(`[${requestId}] Round not found`, { requestId, roundId });
       return NextResponse.json(
-        { error: 'Round not found' },
-        { status: 404 }
+        { error: 'Round not found', requestId },
+        { status: 404, headers: { 'x-request-id': requestId } }
       );
     }
 
     if (round.match.id !== matchId) {
+      console.error(`[${requestId}] Round does not belong to match`, { requestId, roundId, matchId, actualMatchId: round.match.id });
       return NextResponse.json(
-        { error: 'Round does not belong to this match' },
-        { status: 400 }
+        { error: 'Round does not belong to this match', requestId },
+        { status: 400, headers: { 'x-request-id': requestId } }
       );
     }
 
     // Verify user is in this match
     if (round.match.playerAId !== clientId && round.match.playerBId !== clientId) {
+      console.error(`[${requestId}] Client not in match`, { requestId, clientId, playerAId: round.match.playerAId, playerBId: round.match.playerBId });
       return NextResponse.json(
-        { error: 'Not a player in this match' },
-        { status: 403 }
+        { error: 'Not a player in this match', requestId },
+        { status: 403, headers: { 'x-request-id': requestId } }
       );
     }
 
@@ -62,13 +75,15 @@ export async function POST(
 
     // If round already ended, return idempotently
     if (round.endedAt) {
+      console.log(`[${requestId}] Round already ended, returning idempotently`, { requestId, roundId });
       const allRounds = await prisma.matchRound.findMany({ where: { matchId } });
       const last = allRounds.sort((a, b) => a.roundIndex - b.roundIndex)[allRounds.length - 1];
       const matchComplete = !!last?.endedAt;
-      return NextResponse.json({ matchComplete, roundComplete: true });
+      return NextResponse.json({ matchComplete, roundComplete: true, requestId });
     }
 
     // Update round with answer
+    console.log(`[${requestId}] Recording player answer`, { requestId, roundId, isPlayerA, playerAnswer });
     await prisma.matchRound.update({
       where: { id: roundId },
       data: isPlayerA
@@ -79,14 +94,12 @@ export async function POST(
     // If bot match and this is playerA (human), generate bot answer immediately
     if (round.match.isBotMatch && isPlayerA) {
       const botAnswer = getBotAnswer(round.questionId, round.question.difficulty);
+      console.log(`[${requestId}] Generating bot answer`, { requestId, roundId, botAnswer });
       await prisma.matchRound.update({
         where: { id: roundId },
         data: { playerBAnswer: botAnswer },
       });
     }
-
-    // If bot match and this is playerB (shouldn't happen), just use the submitted answer
-    // (This is a safeguard; bots should only be playerB in theory)
 
     // Check if round is complete (both players answered)
     const updatedRound = await prisma.matchRound.findUnique({
@@ -98,10 +111,12 @@ export async function POST(
 
     if (roundComplete) {
       // End round immediately when both answered
+      console.log(`[${requestId}] Round complete, ending round`, { requestId, roundId });
       await prisma.matchRound.update({ where: { id: roundId }, data: { endedAt: new Date() } });
       await trackEvent('round_completed', {
         matchId,
         roundId,
+        requestId,
       }, clientId);
     }
 
@@ -115,6 +130,7 @@ export async function POST(
     const allRoundsEnded = !!lastRound?.endedAt;
 
     if (allRoundsCompleteByAnswers || allRoundsEnded) {
+      console.log(`[${requestId}] All rounds complete, finalizing match`, { requestId, matchId });
       // Calculate scores
       const playerAScore = allRounds.filter(
         r => r.playerAAnswer === r.correctIndex
@@ -126,15 +142,18 @@ export async function POST(
       const playerAWins = playerAScore > playerBScore;
       const playerBWins = playerBScore > playerAScore;
 
+      console.log(`[${requestId}] Match scores`, { requestId, playerAScore, playerBScore, winner: playerAWins ? 'A' : playerBWins ? 'B' : 'draw' });
+
       // For bot matches, only get playerA; playerB is not a real user
       const playerA = await prisma.user.findUnique({
         where: { id: round.match.playerAId },
       });
 
       if (!playerA) {
+        console.error(`[${requestId}] PlayerA not found`, { requestId, playerAId: round.match.playerAId });
         return NextResponse.json(
-          { error: 'Player not found' },
-          { status: 500 }
+          { error: 'Player not found', requestId },
+          { status: 500, headers: { 'x-request-id': requestId } }
         );
       }
 
@@ -146,9 +165,10 @@ export async function POST(
         });
 
         if (!playerB) {
+          console.error(`[${requestId}] PlayerB not found`, { requestId, playerBId: round.match.playerBId });
           return NextResponse.json(
-            { error: 'Opponent not found' },
-            { status: 500 }
+            { error: 'Opponent not found', requestId },
+            { status: 500, headers: { 'x-request-id': requestId } }
           );
         }
       }
@@ -160,6 +180,8 @@ export async function POST(
         playerBRating,
         playerAWins
       );
+
+      console.log(`[${requestId}] Updating ratings`, { requestId, playerAOld: playerA.rating, playerANew: playerANewRating, playerBOld: playerBRating, playerBNew: playerBNewRating });
 
       // Update only playerA (playerB is not a real user for bot matches)
       await prisma.user.update({
@@ -198,7 +220,10 @@ export async function POST(
         isBotMatch: round.match.isBotMatch,
         durationMs: Date.now() - new Date(round.match.createdAt || new Date()).getTime(),
         winner: playerAWins ? round.match.playerAId : playerBWins ? round.match.playerBId : 'draw',
+        requestId,
       }, clientId);
+
+      console.log(`[${requestId}] Match finalized`, { requestId, matchId, status: 'completed' });
 
       return NextResponse.json({
         matchComplete: true,
@@ -207,21 +232,25 @@ export async function POST(
         winner: playerAWins ? 'playerA' : playerBWins ? 'playerB' : 'draw',
         playerANewRating,
         playerBNewRating,
-      });
+        requestId,
+      }, { headers: { 'x-request-id': requestId } });
     }
 
+    console.log(`[${requestId}] Submit successful, match continues`, { requestId, roundComplete });
     return NextResponse.json({
       matchComplete: false,
       roundComplete,
-    });
+      requestId,
+    }, { headers: { 'x-request-id': requestId } });
   } catch (error) {
-    console.error('Submit error:', error);
-    if (error instanceof Error) {
-      console.error('Submit error details:', { message: error.message, stack: error.stack });
-    }
+    console.error(`[${requestId}] Submit error`, {
+      requestId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
-      { error: 'Submission failed' },
-      { status: 500 }
+      { error: 'Submission failed', requestId },
+      { status: 500, headers: { 'x-request-id': requestId } }
     );
   }
 }

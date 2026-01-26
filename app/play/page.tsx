@@ -54,23 +54,94 @@ export default function PlayPage() {
     const ident = ensureIdentity();
     if (!ident) return;
     await logEvent('cta_play_vs_bot_clicked');
+    setError(null);
 
-    try {
-      const res = await fetch('/api/matchmaking/create-bot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId: ident.clientId }),
-      });
-      const data = await res.json();
+    const maxRetries = 2;
+    const backoffMs = [300, 800]; // ms delays for retries
+    let lastError: any = null;
+    let lastRequestId: string | null = null;
 
-      if (data.matchId) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(`[PlayBot] Retry attempt ${attempt}/${maxRetries}, waiting ${backoffMs[attempt - 1]}ms`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs[attempt - 1]));
+        }
+
+        console.log(`[PlayBot] Attempt ${attempt + 1}/${maxRetries + 1}: POST /api/match/bot/start`, {
+          clientId: ident.clientId,
+          username: ident.username,
+        });
+
+        const res = await fetch('/api/match/bot/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: ident.clientId,
+            username: ident.username,
+          }),
+        });
+
+        lastRequestId = res.headers.get('x-request-id');
+        const data = await res.json();
+
+        if (!res.ok) {
+          lastError = data;
+          console.error(`[PlayBot] Attempt ${attempt + 1} failed:`, {
+            status: res.status,
+            error: data.error,
+            requestId: lastRequestId,
+          });
+
+          // Only retry on network errors or 5xx; don't retry on 4xx client errors
+          if (res.status >= 400 && res.status < 500) {
+            throw new Error(`Client error (${res.status}): ${data.error?.message || 'Unknown error'}`);
+          }
+          // 5xx or network error; try again if retries remain
+          if (attempt < maxRetries) {
+            continue;
+          }
+          throw new Error(data.error?.message || 'Failed to start bot match');
+        }
+
+        // Success
+        console.log(`[PlayBot] Match started successfully`, {
+          matchId: data.matchId,
+          requestId: lastRequestId,
+          attempt: attempt + 1,
+        });
+
+        await logEvent('bot_match_started', {
+          matchId: data.matchId,
+          requestId: lastRequestId,
+        });
+
         router.push(`/match/${data.matchId}`);
-      } else {
-        setError('Failed to create bot match');
+        return;
+      } catch (err) {
+        lastError = err;
+        console.error(`[PlayBot] Attempt ${attempt + 1} exception:`, {
+          error: err instanceof Error ? err.message : String(err),
+          requestId: lastRequestId,
+        });
+
+        // If last attempt or client error, stop retrying
+        if (attempt >= maxRetries || (err instanceof Error && err.message.includes('Client error'))) {
+          break;
+        }
       }
-    } catch (err) {
-      setError('Failed to create bot match');
     }
+
+    // All retries exhausted
+    let errorMsg = 'Failed to connect to match against the bot. Try again';
+    if (lastRequestId) {
+      errorMsg += ` (ref: ${lastRequestId.slice(0, 8)})`;
+    }
+    console.error(`[PlayBot] All retries exhausted`, {
+      lastError,
+      requestId: lastRequestId,
+    });
+    setError(errorMsg);
   };
 
 
