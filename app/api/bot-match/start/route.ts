@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 
+// Force rebuild: PostgreSQL schema with generatedQuestion support
+
 const StartSchema = z.object({
   clientId: z.string().min(1),
   username: z.string().min(1),
