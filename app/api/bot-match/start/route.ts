@@ -111,9 +111,13 @@ export async function POST(req: NextRequest) {
         data: {
           playerAId: user.id,
           isBotMatch: true,
-          status: 'active',
+          status: 'ACTIVE',
           startedAt: new Date(),
           mode: 'ranked',
+          opponentType: 'BOT',
+          ratingBeforeA: user.rating,
+          ratingBeforeB: 1200,
+          resultA: 'UNKNOWN',
         },
       });
 

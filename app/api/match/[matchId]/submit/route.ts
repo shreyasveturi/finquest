@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { calculateNewRatings, getTier } from '@/lib/elo';
 import { getBotAnswer } from '@/lib/bot-logic';
 import { trackEvent } from '@/lib/events';
 
@@ -142,8 +141,8 @@ export async function POST(
     const allRoundsEnded = !!lastRound?.endedAt;
 
     if (allRoundsCompleteByAnswers || allRoundsEnded) {
-      console.log(`[${requestId}] All rounds complete, finalizing match`, { requestId, matchId });
-      // Calculate scores
+      console.log(`[${requestId}] All rounds complete, deferring match completion`, { requestId, matchId });
+
       const playerAScore = allRounds.filter(
         r => r.playerAAnswer === r.correctIndex
       ).length;
@@ -153,77 +152,6 @@ export async function POST(
 
       const playerAWins = playerAScore > playerBScore;
       const playerBWins = playerBScore > playerAScore;
-
-      console.log(`[${requestId}] Match scores`, { requestId, playerAScore, playerBScore, winner: playerAWins ? 'A' : playerBWins ? 'B' : 'draw' });
-
-      // For bot matches, only get playerA; playerB is not a real user
-      const playerA = await prisma.user.findUnique({
-        where: { id: round.match.playerAId },
-      });
-
-      if (!playerA) {
-        console.error(`[${requestId}] PlayerA not found`, { requestId, playerAId: round.match.playerAId });
-        return NextResponse.json(
-          { error: 'Player not found', requestId },
-          { status: 500, headers: { 'x-request-id': requestId } }
-        );
-      }
-
-      // For human vs human, also fetch playerB
-      let playerB = null;
-      if (!round.match.isBotMatch && round.match.playerBId) {
-        playerB = await prisma.user.findUnique({
-          where: { id: round.match.playerBId },
-        });
-
-        if (!playerB) {
-          console.error(`[${requestId}] PlayerB not found`, { requestId, playerBId: round.match.playerBId });
-          return NextResponse.json(
-            { error: 'Opponent not found', requestId },
-            { status: 500, headers: { 'x-request-id': requestId } }
-          );
-        }
-      }
-
-      // Calculate new ratings (use default 1200 for bot)
-      const playerBRating = playerB?.rating || 1200;
-      const { playerANewRating, playerBNewRating } = calculateNewRatings(
-        playerA.rating,
-        playerBRating,
-        playerAWins
-      );
-
-      console.log(`[${requestId}] Updating ratings`, { requestId, playerAOld: playerA.rating, playerANew: playerANewRating, playerBOld: playerBRating, playerBNew: playerBNewRating });
-
-      // Update only playerA (playerB is not a real user for bot matches)
-      await prisma.user.update({
-        where: { id: round.match.playerAId },
-        data: {
-          rating: playerANewRating,
-          tier: getTier(playerANewRating),
-        },
-      });
-
-      // Update playerB only if human vs human match
-      if (playerB) {
-        await prisma.user.update({
-          where: { id: round.match.playerBId! },
-          data: {
-            rating: playerBNewRating,
-            tier: getTier(playerBNewRating),
-          },
-        });
-      }
-
-      // Mark match as completed
-      await prisma.match.update({
-        where: { id: matchId },
-        data: {
-          status: 'completed',
-          endedAt: new Date(),
-          winnerId: playerAWins ? round.match.playerAId : playerBWins ? round.match.playerBId : null,
-        },
-      });
 
       await trackEvent('match_completed', {
         matchId,
@@ -235,15 +163,11 @@ export async function POST(
         requestId,
       }, clientId);
 
-      console.log(`[${requestId}] Match finalized`, { requestId, matchId, status: 'completed' });
-
       return NextResponse.json({
         matchComplete: true,
         playerAScore,
         playerBScore,
         winner: playerAWins ? 'playerA' : playerBWins ? 'playerB' : 'draw',
-        playerANewRating,
-        playerBNewRating,
         requestId,
       }, { headers: { 'x-request-id': requestId } });
     }

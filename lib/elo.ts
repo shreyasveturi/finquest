@@ -38,3 +38,18 @@ export function getTier(rating: number): string {
   if (rating < 1550) return 'Gold';
   return 'Platinum';
 }
+
+export function calculateEloUpdate(
+  playerARating: number,
+  playerBRating: number,
+  scoreA: number,
+  kFactor: number = K_FACTOR
+): { playerANewRating: number; playerBNewRating: number } {
+  const expectedScoreA = 1 / (1 + Math.pow(10, (playerBRating - playerARating) / 400));
+  const expectedScoreB = 1 - expectedScoreA;
+
+  const playerANewRating = Math.round(playerARating + kFactor * (scoreA - expectedScoreA));
+  const playerBNewRating = Math.round(playerBRating + kFactor * ((1 - scoreA) - expectedScoreB));
+
+  return { playerANewRating, playerBNewRating };
+}

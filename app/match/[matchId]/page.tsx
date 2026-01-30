@@ -45,10 +45,19 @@ export default function MatchPage() {
   const [timeRemainingMs, setTimeRemainingMs] = useState<number>(25000);
   const [inputsLocked, setInputsLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [roundStartAt, setRoundStartAt] = useState<number | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [matchResult, setMatchResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isPlayingAgain, setIsPlayingAgain] = useState(false);
   const finalizeInFlight = useRef(false);
+  const firstCommitAtRef = useRef<number | null>(null);
+  const pendingSubmissionRef = useRef<{
+    selectedIndex: number;
+    responseTimeMs: number;
+    timeToFirstCommitMs: number | null;
+    timeExpired: boolean;
+  } | null>(null);
 
   // Handle Play Again button: start new match directly
   const handlePlayAgain = useCallback(async () => {
@@ -136,14 +145,17 @@ export default function MatchPage() {
 
         const m: Match = { ...data, rounds: normalizedRounds };
         setMatch(m);
+        setSubmitError(null);
         // Derive timer from server state
         const serverNow = m.serverNow ?? Date.now();
         const startAt = m.roundStartAt ?? serverNow;
         const duration = m.roundDurationMs ?? 25000;
         const remaining = Math.max(0, startAt + duration - serverNow);
+        setRoundStartAt(startAt);
         setTimeRemainingMs(remaining);
         setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
         setCurrentRoundIndex(m.currentRoundIndex ?? 0);
+        firstCommitAtRef.current = null;
         setLoading(false);
       } catch (err) {
         console.error('[MatchPage] ✗ Failed to fetch match:', err);
@@ -159,151 +171,162 @@ export default function MatchPage() {
     fetchMatch();
   }, [matchId, router, normalizeRounds]);
 
-  const handleSubmit = useCallback(async (answerOverride?: number) => {
+  const submitRound = useCallback(async (payload: {
+    selectedIndex: number;
+    responseTimeMs: number;
+    timeToFirstCommitMs: number | null;
+    timeExpired: boolean;
+  }) => {
     if (!match || !matchId) return;
-
-    const answer = answerOverride !== undefined ? answerOverride : selectedAnswer;
-    if (answer === null) return;
-
-    setIsSubmitting(true);
     const round = match.rounds[currentRoundIndex];
+    const clientId = localStorage.getItem('scio_client_id');
+    if (!clientId) return;
+
+    pendingSubmissionRef.current = payload;
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    const selectedIndex = payload.selectedIndex;
+    const selectedOption = selectedIndex >= 0 ? round.question?.options?.[selectedIndex] ?? null : null;
+    const correct = selectedIndex >= 0 && selectedIndex === round.correctIndex;
 
     try {
-      const clientId = localStorage.getItem('scio_client_id');
-
-      const res = await fetch(`/api/match/${matchId}/submit`, {
+      // 1) Log round metrics
+      const logRes = await fetch('/api/round/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          roundId: round.id,
-          playerAnswer: answer,
           clientId,
+          matchId,
+          roundIndex: round.roundIndex,
+          questionId: round.questionId,
+          selectedOption,
+          correct,
+          responseTimeMs: payload.responseTimeMs,
+          timeToFirstCommitMs: payload.timeToFirstCommitMs,
+          timeExpired: payload.timeExpired,
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error('Submit failed:', data);
+      if (!logRes.ok) {
+        const logErr = await logRes.json();
+        setSubmitError(logErr?.error?.message || 'Failed to log round');
         setIsSubmitting(false);
         return;
       }
 
-      console.log('Submit response:', data);
+      // 2) Submit gameplay answer (use -1 for no selection)
+      const submitRes = await fetch(`/api/match/${matchId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roundId: round.id,
+          playerAnswer: selectedIndex >= 0 ? selectedIndex : -1,
+          clientId,
+        }),
+      });
 
-      if (data.matchComplete) {
-        console.log('Match complete, setting result:', data);
-        setMatchResult(data);
-      } else {
-        // Refetch match to get authoritative next round and timing
-        const clientId2 = localStorage.getItem('scio_client_id');
-        const res2 = await fetch(`/api/match/${matchId}?clientId=${clientId2}`);
-        const fresh = await res2.json();
-        if (!res2.ok || fresh?.error) {
-          console.error('Failed to refetch match');
-        } else {
-          const normalizedRounds = normalizeRounds(fresh.rounds);
-          const m: Match = { ...fresh, rounds: normalizedRounds };
-          setMatch(m);
-          setCurrentRoundIndex(m.currentRoundIndex ?? currentRoundIndex);
-          const serverNow = m.serverNow ?? Date.now();
-          const startAt = m.roundStartAt ?? serverNow;
-          const duration = m.roundDurationMs ?? 25000;
-          const remaining = Math.max(0, startAt + duration - serverNow);
-          setTimeRemainingMs(remaining);
-          setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
-          setSelectedAnswer(null);
-        }
+      const submitData = await submitRes.json();
+      if (!submitRes.ok) {
+        setSubmitError(submitData?.error || 'Failed to submit round');
+        setIsSubmitting(false);
+        return;
       }
+
+      const isLastRound = currentRoundIndex === match.rounds.length - 1;
+      if (isLastRound) {
+        const completeRes = await fetch('/api/match/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId,
+            matchId,
+            resultA: 'UNKNOWN',
+          }),
+        });
+        const completeData = await completeRes.json();
+        if (!completeRes.ok) {
+          setSubmitError(completeData?.error?.message || 'Failed to complete match');
+          setIsSubmitting(false);
+          return;
+        }
+        setMatchResult(completeData);
+        return;
+      }
+
+      // Refetch match to advance
+      const res2 = await fetch(`/api/match/${matchId}?clientId=${clientId}`);
+      const fresh = await res2.json();
+      if (!res2.ok || fresh?.error) {
+        setSubmitError('Failed to load next round');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const normalizedRounds = normalizeRounds(fresh.rounds);
+      const m: Match = { ...fresh, rounds: normalizedRounds };
+      setMatch(m);
+      setCurrentRoundIndex(m.currentRoundIndex ?? currentRoundIndex + 1);
+      const serverNow = m.serverNow ?? Date.now();
+      const startAt = m.roundStartAt ?? serverNow;
+      const duration = m.roundDurationMs ?? 25000;
+      const remaining = Math.max(0, startAt + duration - serverNow);
+      setRoundStartAt(startAt);
+      setTimeRemainingMs(remaining);
+      setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
+      setSelectedAnswer(null);
+      firstCommitAtRef.current = null;
+      pendingSubmissionRef.current = null;
     } catch (err) {
-      console.error('Failed to submit:', err);
+      console.error('Failed to submit round:', err);
+      setSubmitError('Failed to submit round');
     } finally {
       setIsSubmitting(false);
+      finalizeInFlight.current = false;
     }
-  }, [match, matchId, currentRoundIndex, selectedAnswer, normalizeRounds]);
+  }, [match, matchId, currentRoundIndex, normalizeRounds]);
 
-  // Server-driven timer; finalize on expiry, no auto-submission
+  const finalizeRound = useCallback((reason: 'manual' | 'timeout') => {
+    if (!match || !matchId) return;
+    if (finalizeInFlight.current) return;
+
+    const now = Date.now();
+    const startAt = roundStartAt ?? now;
+    const responseTimeMs = Math.max(0, now - startAt);
+    const timeToFirstCommitMs = firstCommitAtRef.current
+      ? Math.max(0, firstCommitAtRef.current - startAt)
+      : null;
+
+    const selectedIndex = selectedAnswer !== null ? selectedAnswer : -1;
+    const timeExpired = reason === 'timeout';
+
+    if (reason === 'manual' && selectedAnswer === null) return;
+
+    finalizeInFlight.current = true;
+    submitRound({
+      selectedIndex,
+      responseTimeMs,
+      timeToFirstCommitMs,
+      timeExpired,
+    });
+  }, [match, matchId, roundStartAt, selectedAnswer, submitRound]);
+
+  // Server-driven timer with deterministic remaining time
   useEffect(() => {
-    if (!match || matchResult) return;
+    if (!match || matchResult || roundStartAt === null) return;
 
+    const duration = match.roundDurationMs ?? 25000;
     const tickInterval = setInterval(() => {
-      setTimeRemainingMs(prev => {
-        const next = Math.max(0, prev - 250);
-        if (next === 0) {
-          setInputsLocked(true);
-        }
-        return next;
-      });
+      const remaining = Math.max(0, roundStartAt + duration - Date.now());
+      setTimeRemainingMs(remaining);
+      if (remaining === 0) {
+        setInputsLocked(true);
+        finalizeRound('timeout');
+      }
     }, 250);
 
     return () => clearInterval(tickInterval);
-  }, [match, matchResult]);
-
-  // When timer hits 0, call finalize once and poll until round ends
-  useEffect(() => {
-    const doFinalize = async () => {
-      if (!match || !matchId) return;
-      if (finalizeInFlight.current) return;
-      finalizeInFlight.current = true;
-      try {
-        const clientId = localStorage.getItem('scio_client_id');
-        const res = await fetch(`/api/match/${matchId}/finalize-round`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          console.error('Finalize failed:', data);
-          finalizeInFlight.current = false;
-          return;
-        }
-
-        if (data.matchComplete) {
-          setTimeout(() => setMatchResult(data), 900);
-          return;
-        }
-
-        // Poll for round end
-        const poll = async () => {
-          const clientId2 = localStorage.getItem('scio_client_id');
-          const r = await fetch(`/api/match/${matchId}?clientId=${clientId2}`);
-          const fresh = await r.json();
-          if (!r.ok || fresh?.error) {
-            setTimeout(poll, 400);
-            return;
-          }
-          if (fresh.roundStatus === 'ended') {
-            // Transition to next round after brief delay
-            setTimeout(() => {
-              const normalizedRounds = normalizeRounds(fresh.rounds);
-              const m: Match = { ...fresh, rounds: normalizedRounds };
-              setMatch(m);
-              setCurrentRoundIndex(m.currentRoundIndex ?? currentRoundIndex);
-              const serverNow = m.serverNow ?? Date.now();
-              const startAt = m.roundStartAt ?? serverNow;
-              const duration = m.roundDurationMs ?? 25000;
-              const remaining = Math.max(0, startAt + duration - serverNow);
-              setTimeRemainingMs(remaining);
-              setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
-              setSelectedAnswer(null);
-              finalizeInFlight.current = false;
-            }, 900);
-          } else {
-            setTimeout(poll, 400);
-          }
-        };
-        poll();
-      } catch (e) {
-        console.error('Finalize error:', e);
-        finalizeInFlight.current = false;
-      }
-    };
-
-    if (timeRemainingMs === 0 && match && !matchResult) {
-      doFinalize();
-    }
-  }, [timeRemainingMs, match, matchId, matchResult, currentRoundIndex]);
+  }, [match, matchResult, roundStartAt, finalizeRound]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading match...</div>;
@@ -322,8 +345,8 @@ export default function MatchPage() {
 
   if (matchResult) {
     // Match results screen
-    const { playerAScore, playerBScore, winner, playerANewRating, playerBNewRating } = matchResult;
-    const userIsPlayerA = match.rounds[0] && match.rounds[0].playerAAnswer !== null;
+    const { playerAScore, playerBScore, winner, ratingAfterA } = matchResult;
+    const userIsPlayerA = true;
     const userWon = (userIsPlayerA && winner === 'playerA') || (!userIsPlayerA && winner === 'playerB');
 
     return (
@@ -337,14 +360,14 @@ export default function MatchPage() {
             <div className="flex justify-between items-center text-lg font-semibold">
               <span>You</span>
               <span className="text-neutral-600">
-                {userIsPlayerA ? playerAScore : playerBScore}/5
+                {userIsPlayerA ? playerAScore : playerBScore}/{match.rounds.length}
               </span>
             </div>
             <div className="w-full bg-neutral-200 h-1 rounded"></div>
             <div className="flex justify-between items-center text-lg font-semibold">
               <span>{match.isBotMatch ? 'Bot' : 'Opponent'}</span>
               <span className="text-neutral-600">
-                {userIsPlayerA ? playerBScore : playerAScore}/5
+                {userIsPlayerA ? playerBScore : playerAScore}/{match.rounds.length}
               </span>
             </div>
           </div>
@@ -352,7 +375,7 @@ export default function MatchPage() {
           <div className="space-y-2 text-center">
             <p className="text-sm text-neutral-600">New Rating</p>
             <p className="text-2xl font-bold text-blue-600">
-              {userIsPlayerA ? playerANewRating : playerBNewRating}
+              {ratingAfterA}
             </p>
           </div>
 
@@ -396,7 +419,7 @@ export default function MatchPage() {
       <div className="bg-neutral-50 border-b p-4">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <p className="text-sm font-semibold text-neutral-600">
-            Round {currentRoundIndex + 1} of 5
+            Round {currentRoundIndex + 1} of {match.rounds.length}
           </p>
           <div className={`text-lg font-bold ${timeRemainingMs <= 5000 ? 'text-red-600' : 'text-blue-600'}`}>
             {Math.ceil(timeRemainingMs / 1000)}s
@@ -428,7 +451,13 @@ export default function MatchPage() {
             {options.map((option, index) => (
               <button
                 key={index}
-                onClick={() => !inputsLocked && setSelectedAnswer(index)}
+                onClick={() => {
+                  if (inputsLocked || isSubmitting) return;
+                  if (!firstCommitAtRef.current) {
+                    firstCommitAtRef.current = Date.now();
+                  }
+                  setSelectedAnswer(index);
+                }}
                 className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
                   selectedAnswer === index
                     ? 'border-blue-600 bg-blue-50'
@@ -451,9 +480,27 @@ export default function MatchPage() {
             ))}
           </div>
 
+          {submitError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <p className="mb-2">{submitError}</p>
+              <Button
+                onClick={() => {
+                  const pending = pendingSubmissionRef.current;
+                  if (pending) {
+                    submitRound(pending);
+                  }
+                }}
+                className="w-full"
+                variant="outline"
+              >
+                Retry submit
+              </Button>
+            </div>
+          )}
+
           {/* Submit button */}
           <Button
-            onClick={() => handleSubmit()}
+            onClick={() => finalizeRound('manual')}
             disabled={inputsLocked || selectedAnswer === null || isSubmitting}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-300 text-white font-semibold py-3"
           >

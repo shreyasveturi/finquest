@@ -117,7 +117,7 @@ export async function POST(
         const difficultyStr = currentRound.question?.difficulty ?? (
           typeof currentRound.generatedQuestion?.difficulty === 'number'
             ? currentRound.generatedQuestion!.difficulty <= 2
-              ? 'easy'
+              status: 'COMPLETED',
               : currentRound.generatedQuestion!.difficulty === 3
                 ? 'medium'
                 : 'hard'
@@ -198,7 +198,7 @@ export async function POST(
         await prisma.match.update({
           where: { id: matchId },
           data: {
-            status: 'completed',
+              status: 'COMPLETED',
             endedAt: new Date(),
             winnerId: playerAWins ? match.playerAId : playerBWins ? match.playerBId : null,
           },
@@ -218,7 +218,7 @@ export async function POST(
           clientId
         );
 
-        console.log(`[${requestId}] Match completed`, { requestId, matchId, status: 'completed' });
+        console.log(`[${requestId}] Match completed`, { requestId, matchId, status: 'COMPLETED' });
 
         return NextResponse.json(
           {
