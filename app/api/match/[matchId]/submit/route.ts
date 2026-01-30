@@ -62,9 +62,10 @@ export async function POST(
       );
     }
 
-    // Verify user is in this match
-    if (round.match.playerAId !== clientId && round.match.playerBId !== clientId) {
-      console.error(`[${requestId}] Client not in match`, { requestId, clientId, playerAId: round.match.playerAId, playerBId: round.match.playerBId });
+    // Resolve user by clientId and verify participant
+    const user = await prisma.user.findUnique({ where: { clientId } });
+    if (!user || (round.match.playerAId !== user.id && round.match.playerBId !== user.id)) {
+      console.error(`[${requestId}] Client not in match`, { requestId, clientId, userId: user?.id, playerAId: round.match.playerAId, playerBId: round.match.playerBId });
       return NextResponse.json(
         { error: 'Not a player in this match', requestId },
         { status: 403, headers: { 'x-request-id': requestId } }
@@ -72,7 +73,7 @@ export async function POST(
     }
 
     // Determine which player this is
-    const isPlayerA = round.match.playerAId === clientId;
+    const isPlayerA = round.match.playerAId === user.id;
 
     // If round already ended, return idempotently
     if (round.endedAt) {

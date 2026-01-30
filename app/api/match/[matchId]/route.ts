@@ -47,12 +47,25 @@ export async function GET(
 
     console.log(`[match-get ${requestId}] ✓ Found match ${matchId} with ${match.rounds.length} rounds`);
 
-    // Verify user is in this match
-    if (!clientId || (match.playerAId !== clientId && match.playerBId !== clientId)) {
+    // Resolve user by clientId and verify participant
+    if (!clientId) {
+      console.error(`[${requestId}] Unauthorized match access (missing clientId)`, {
+        requestId,
+        matchId,
+      });
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: 'Not a player in this match', requestId } },
+        { status: 403, headers: { 'x-request-id': requestId } }
+      );
+    }
+
+    const user = await prisma.user.findUnique({ where: { clientId } });
+    if (!user || (match.playerAId !== user.id && match.playerBId !== user.id)) {
       console.error(`[${requestId}] Unauthorized match access`, {
         requestId,
         matchId,
         clientId,
+        userId: user?.id,
         playerAId: match.playerAId,
         playerBId: match.playerBId,
       });

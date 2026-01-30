@@ -53,9 +53,10 @@ export async function POST(
       );
     }
 
-    // Verify participant
-    if (match.playerAId !== clientId && match.playerBId !== clientId) {
-      console.error(`[${requestId}] Unauthorized match access`, { requestId, clientId, playerAId: match.playerAId, playerBId: match.playerBId });
+    // Resolve user by clientId and verify participant
+    const user = await prisma.user.findUnique({ where: { clientId } });
+    if (!user || (match.playerAId !== user.id && match.playerBId !== user.id)) {
+      console.error(`[${requestId}] Unauthorized match access`, { requestId, clientId, userId: user?.id, playerAId: match.playerAId, playerBId: match.playerBId });
       return NextResponse.json(
         { error: 'Not a player in this match', requestId },
         { status: 403, headers: { 'x-request-id': requestId } }
