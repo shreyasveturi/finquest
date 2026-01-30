@@ -57,12 +57,23 @@ model User {
   tier          String    @default("Bronze")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  
+  // Identity Lite fields
+  clientId         String    @unique
+  displayName      String
+  canonicalName    String
+  discriminator    Int       // 0-9999, shown as 4 digits
+  lastNameChangeAt DateTime?
+  banned           Boolean   @default(false)
 
   accounts       Account[]
   sessions       Session[]
   matchesAsPlayerA Match[] @relation("PlayerA")
   matchesAsPlayerB Match[] @relation("PlayerB")
   events         Event[]
+  
+  @@unique([canonicalName, discriminator])
+  @@index([canonicalName])
 }
 
 model Question {

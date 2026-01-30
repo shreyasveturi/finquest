@@ -13,18 +13,31 @@ export default async function LeaderboardPage() {
   const topPlayers = await prisma.user.findMany({
     orderBy: { rating: 'desc' },
     take: 25,
-    select: { id: true, name: true, email: true, rating: true },
+    select: { 
+      id: true, 
+      name: true, 
+      email: true, 
+      rating: true,
+      displayName: true,
+      discriminator: true,
+    },
   });
 
-  const nameCounts = topPlayers.reduce<Record<string, number>>((acc, p) => {
-    const key = p.name || p.email || 'Player';
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
-
-  const displayName = (player: { id: string; name: string | null; email: string | null }) => {
+  const displayName = (player: { 
+    id: string; 
+    name: string | null; 
+    email: string | null;
+    displayName: string | null;
+    discriminator: number | null;
+  }) => {
+    // Use new identity system if available
+    if (player.displayName !== null && player.discriminator !== null) {
+      const disc = player.discriminator.toString().padStart(4, '0');
+      return `${player.displayName}#${disc}`;
+    }
+    
+    // Fallback for legacy users (pre-identity system)
     const base = player.name || player.email || 'Player';
-    if ((nameCounts[base] || 0) <= 1) return base;
     const suffix = player.id.slice(-4).toUpperCase();
     return `${base}#${suffix}`;
   };
