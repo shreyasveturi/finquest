@@ -117,7 +117,7 @@ export async function POST(
         const difficultyStr = currentRound.question?.difficulty ?? (
           typeof currentRound.generatedQuestion?.difficulty === 'number'
             ? currentRound.generatedQuestion!.difficulty <= 2
-              status: 'COMPLETED',
+              ? 'easy'
               : currentRound.generatedQuestion!.difficulty === 3
                 ? 'medium'
                 : 'hard'
