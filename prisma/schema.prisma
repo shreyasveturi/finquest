@@ -57,112 +57,130 @@ model User {
   tier          String    @default("Bronze")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  
+
   // Identity Lite fields
   clientId         String    @unique
   displayName      String
   canonicalName    String
-  discriminator    Int       // 0-9999, shown as 4 digits
+  discriminator    Int // 0-9999, shown as 4 digits
   lastNameChangeAt DateTime?
   banned           Boolean   @default(false)
 
-  accounts         Account[]
-  sessions         Session[]
-  matchesAsPlayerA Match[] @relation("PlayerA")
-  matchesAsPlayerB Match[] @relation("PlayerB")
-  roundLogs        Round[]
-  events           Event[]
-  
+  // Phase 3: Engagement & Retention
+  cohortTag    String? // e.g. "UCL", "LSE", "KCL"
+  isAnonymous  Boolean @default(true)
+  publicHandle String? // optional, if not anonymous
+  anonId       String? @unique // generated like "anon-7f3a2c"
+
+  accounts             Account[]
+  sessions             Session[]
+  matchesAsPlayerA     Match[]               @relation("PlayerA")
+  matchesAsPlayerB     Match[]               @relation("PlayerB")
+  roundLogs            Round[]
+  events               Event[]
+  leaderboardSnapshots LeaderboardSnapshot[]
+
   @@unique([canonicalName, discriminator])
   @@index([canonicalName])
+  @@index([cohortTag])
 }
 
 model Question {
-  id            String   @id @default(cuid())
-  type          String // "conclusion-follows" or "assumption-required"
-  prompt        String
-  options       String // JSON array
-  correctIndex  Int
-  difficulty    String // "easy", "medium", "hard"
+  id             String   @id @default(cuid())
+  type           String // "conclusion-follows" or "assumption-required"
+  prompt         String
+  options        String // JSON array
+  correctIndex   Int
+  difficulty     String // "easy", "medium", "hard"
   structuralType String? // Phase 2: CONSTRAINT_CHECK, ASSUMPTION_TEST, etc.
-  createdAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
 
   matchRounds MatchRound[]
-  
+
   @@index([structuralType])
 }
 
 model GeneratedQuestion {
-  id              String   @id @default(cuid())
-  prompt          String   // question stem
-  choicesJson     String   // JSON array of strings [4]
-  correctIndex    Int      // 0-3
-  explanation     String?
-  difficulty      Int?     // 1-5
-  topicTag        String?
-  structuralType  String?  // Phase 2: CONSTRAINT_CHECK, ASSUMPTION_TEST, etc.
-  createdAt       DateTime @default(now())
-  model           String   // e.g., "gpt-4o-mini"
+  id             String   @id @default(cuid())
+  prompt         String // question stem
+  choicesJson    String // JSON array of strings [4]
+  correctIndex   Int // 0-3
+  explanation    String?
+  difficulty     Int? // 1-5
+  topicTag       String?
+  structuralType String? // Phase 2: CONSTRAINT_CHECK, ASSUMPTION_TEST, etc.
+  createdAt      DateTime @default(now())
+  model          String // e.g., "gpt-4o-mini"
 
-  matchRounds     MatchRound[]
+  matchRounds MatchRound[]
 
   @@index([createdAt])
   @@index([structuralType])
 }
 
 model Match {
-  id          String    @id @default(cuid())
-  mode        String    @default("ranked") // "ranked" only for v0.1
-  status      MatchStatus @default(ACTIVE)
-  playerAId   String
-  playerBId   String? // null for bot matches
-  isBotMatch  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  startedAt   DateTime?
-  endedAt     DateTime?
-  winnerId    String? // userId of winner
+  id         String      @id @default(cuid())
+  mode       String      @default("ranked") // "ranked" only for v0.1
+  status     MatchStatus @default(ACTIVE)
+  playerAId  String
+  playerBId  String? // null for bot matches
+  isBotMatch Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  startedAt  DateTime?
+  endedAt    DateTime?
+  winnerId   String? // userId of winner
 
-  opponentType  OpponentType @default(BOT)
+  opponentType OpponentType @default(BOT)
 
-  ratingBeforeA Int      @default(1200)
+  ratingBeforeA Int  @default(1200)
   ratingAfterA  Int?
   ratingBeforeB Int?
   ratingAfterB  Int?
 
-  resultA       MatchResult @default(UNKNOWN)
+  resultA MatchResult @default(UNKNOWN)
 
-  playerA     User         @relation("PlayerA", fields: [playerAId], references: [id])
-  playerB     User?        @relation("PlayerB", fields: [playerBId], references: [id])
-  rounds      MatchRound[]
-  roundLogs   Round[]
+  // Phase 3: Engagement & Retention
+  scoreA              Int? // number correct for player A
+  scoreB              Int? // number correct for player B (optional for bot matches)
+  decidedByRoundIndex Int? // which round was the "swing" round
+  nearMiss            Boolean @default(false)
+
+  playerA   User         @relation("PlayerA", fields: [playerAId], references: [id])
+  playerB   User?        @relation("PlayerB", fields: [playerBId], references: [id])
+  rounds    MatchRound[]
+  roundLogs Round[]
 }
 
 model Round {
-  id                  String   @id @default(cuid())
-  matchId             String
-  match               Match    @relation(fields: [matchId], references: [id])
+  id      String @id @default(cuid())
+  matchId String
+  match   Match  @relation(fields: [matchId], references: [id])
 
-  userId              String
-  user                User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  roundIndex          Int
-  questionId          String?
+  roundIndex Int
+  questionId String?
 
-  correct             Boolean
-  selectedOption      String?
-  timeExpired         Boolean   @default(false)
+  correct        Boolean
+  selectedOption String?
+  timeExpired    Boolean @default(false)
 
   responseTimeMs      Int
   timeToFirstCommitMs Int?
 
-  feedbackTag         String?   // e.g. "MISSED_CONSTRAINT", "RUSHED_DECISION"
-  feedbackText        String?   // short, human-readable insight
+  feedbackTag  String? // e.g. "MISSED_CONSTRAINT", "RUSHED_DECISION"
+  feedbackText String? // short, human-readable insight
 
-  createdAt           DateTime  @default(now())
+  // Phase 3: Engagement & Retention
+  wasDecidingMistake Boolean @default(false)
+  efficiencyScore    Float?
 
+  createdAt DateTime @default(now())
+
+  @@unique([matchId, userId, roundIndex])
   @@index([matchId, roundIndex])
   @@index([userId, createdAt])
-  @@unique([matchId, userId, roundIndex])
 }
 
 enum MatchStatus {
@@ -185,20 +203,20 @@ enum MatchResult {
 }
 
 model MatchRound {
-  id                    String    @id @default(cuid())
-  matchId               String
-  roundIndex            Int       // 0-4 for 5 rounds
-  questionId            String?   // for fallback to seeded questions
-  generatedQuestionId   String?   // for AI-generated questions
-  playerAAnswer         Int? // index of option selected
-  playerBAnswer         Int? // index of option selected
-  correctIndex          Int
-  endedAt               DateTime?
-  createdAt             DateTime  @default(now())
+  id                  String    @id @default(cuid())
+  matchId             String
+  roundIndex          Int // 0-4 for 5 rounds
+  questionId          String? // for fallback to seeded questions
+  generatedQuestionId String? // for AI-generated questions
+  playerAAnswer       Int? // index of option selected
+  playerBAnswer       Int? // index of option selected
+  correctIndex        Int
+  endedAt             DateTime?
+  createdAt           DateTime  @default(now())
 
-  match                Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  question             Question?          @relation(fields: [questionId], references: [id])
-  generatedQuestion    GeneratedQuestion? @relation(fields: [generatedQuestionId], references: [id])
+  match             Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  question          Question?          @relation(fields: [questionId], references: [id])
+  generatedQuestion GeneratedQuestion? @relation(fields: [generatedQuestionId], references: [id])
 
   @@unique([matchId, roundIndex])
 }
@@ -211,6 +229,41 @@ model Event {
   createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
+
   @@index([eventName])
   @@index([createdAt])
+}
+
+// Phase 3: Seasonal Leaderboards
+model Season {
+  id        String   @id @default(cuid())
+  name      String // e.g. "Winter 2026 Week 05" or "Season 1"
+  startsAt  DateTime
+  endsAt    DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  leaderboardSnapshots LeaderboardSnapshot[]
+
+  @@index([isActive])
+}
+
+model LeaderboardSnapshot {
+  id       String @id @default(cuid())
+  seasonId String
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  matches    Int   @default(0)
+  wins       Int   @default(0)
+  losses     Int   @default(0)
+  accuracy   Float @default(0) // avg accuracy across matches in season
+  efficiency Float @default(0) // avg efficiency score in season
+  rating     Int   @default(1200)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([seasonId, userId])
+  @@index([seasonId, rating])
 }
