@@ -84,9 +84,12 @@ model Question {
   options       String // JSON array
   correctIndex  Int
   difficulty    String // "easy", "medium", "hard"
+  structuralType String? // Phase 2: CONSTRAINT_CHECK, ASSUMPTION_TEST, etc.
   createdAt     DateTime @default(now())
 
   matchRounds MatchRound[]
+  
+  @@index([structuralType])
 }
 
 model GeneratedQuestion {
@@ -97,12 +100,14 @@ model GeneratedQuestion {
   explanation     String?
   difficulty      Int?     // 1-5
   topicTag        String?
+  structuralType  String?  // Phase 2: CONSTRAINT_CHECK, ASSUMPTION_TEST, etc.
   createdAt       DateTime @default(now())
   model           String   // e.g., "gpt-4o-mini"
 
   matchRounds     MatchRound[]
 
   @@index([createdAt])
+  @@index([structuralType])
 }
 
 model Match {
