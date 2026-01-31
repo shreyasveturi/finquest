@@ -57,7 +57,7 @@ export async function GET(
     // Compute match metrics
     const metrics = computeMatchMetrics(roundData, roundDurationMs);
 
-    // Build round summaries with question details
+    // Build round summaries with question details and feedback
     const roundSummaries = (match.roundLogs as any[]).map((r) => {
       const matchRound = (match.rounds as any[]).find(
         (mr: any) => mr.roundIndex === r.roundIndex
@@ -85,6 +85,8 @@ export async function GET(
         timeToFirstCommitMs: r.timeToFirstCommitMs,
         questionPrompt,
         correctIndex,
+        feedbackTag: r.feedbackTag || null,
+        feedbackText: r.feedbackText || null,
       };
     });
 

@@ -16,6 +16,8 @@ interface RoundSummary {
   timeToFirstCommitMs: number | null;
   questionPrompt: string;
   correctIndex: number;
+  feedbackTag?: string | null;
+  feedbackText?: string | null;
 }
 
 interface MatchMetrics {
@@ -119,6 +121,15 @@ export default function MatchResultsPage() {
   const isDraw = summary.winner === 'draw';
   const ratingChange = summary.ratingAfter - summary.ratingBefore;
 
+  // Extract feedback for incorrect rounds
+  const incorrectRounds = summary.rounds.filter(r => !r.correct);
+  const feedbackInsights = incorrectRounds
+    .filter(r => r.feedbackText)
+    .map((r, idx) => ({
+      roundIndex: r.roundIndex,
+      feedbackText: r.feedbackText,
+    }));
+
   return (
     <div className="min-h-screen bg-neutral-50 py-8 px-6">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -212,6 +223,35 @@ export default function MatchResultsPage() {
             </div>
           </div>
         </div>
+
+        {/* Phase 1: Feedback Without Cognitive Overload */}
+        {incorrectRounds.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm p-6 border-2 border-green-200">
+            <h2 className="text-xl font-bold text-neutral-900 mb-3">✨ What to improve next time</h2>
+            <p className="text-green-700 font-medium">
+              No feedback needed — accuracy was high.
+            </p>
+          </div>
+        ) : feedbackInsights.length > 0 ? (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold text-neutral-900 mb-4">✨ What to improve next time</h2>
+            <div className="space-y-3">
+              {feedbackInsights.map((insight, idx) => (
+                <div key={idx} className="flex gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex-shrink-0 text-lg">💡</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-neutral-900">
+                      Round {insight.roundIndex + 1}
+                    </p>
+                    <p className="text-sm text-neutral-700 mt-1">
+                      {insight.feedbackText}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Round-by-Round Breakdown */}
         <div className="bg-white rounded-lg shadow-sm p-6">

@@ -150,6 +150,9 @@ model Round {
   responseTimeMs      Int
   timeToFirstCommitMs Int?
 
+  feedbackTag         String?   // e.g. "MISSED_CONSTRAINT", "RUSHED_DECISION"
+  feedbackText        String?   // short, human-readable insight
+
   createdAt           DateTime  @default(now())
 
   @@index([matchId, roundIndex])

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateEloUpdate, getTier } from '@/lib/elo';
+import { assignFeedback, type RoundData } from '@/lib/feedback';
+import { getFeedbackText, FeedbackTag } from '@/lib/feedbackMap';
 
 const BOT_RATING = 1200;
 
@@ -136,6 +138,43 @@ export async function POST(req: NextRequest) {
         });
       }
     });
+
+    // Generate feedback for all incorrect rounds (Phase 1)
+    // This is idempotent: only updates rounds that don't already have feedback
+    const roundDurationMs = 25000; // Standard round duration
+    
+    const roundsWithoutFeedback = await prisma.round.findMany({
+      where: {
+        matchId,
+        correct: false,
+        feedbackTag: { equals: null },
+      },
+      orderBy: { roundIndex: 'asc' },
+    });
+
+    // Assign feedback to each incorrect round
+    for (const round of roundsWithoutFeedback) {
+      const roundData: RoundData = {
+        correct: round.correct,
+        responseTimeMs: round.responseTimeMs,
+        timeExpired: round.timeExpired,
+        roundDurationMs,
+        timeToFirstCommitMs: round.timeToFirstCommitMs,
+      };
+
+      const feedbackTag = assignFeedback(roundData);
+      
+      if (feedbackTag) {
+        const feedbackText = getFeedbackText(feedbackTag as FeedbackTag);
+        await prisma.round.update({
+          where: { id: round.id },
+          data: {
+            feedbackTag,
+            feedbackText,
+          },
+        });
+      }
+    }
 
     return NextResponse.json(
       {
