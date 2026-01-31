@@ -41,17 +41,23 @@ export default function MatchPage() {
   const router = useRouter();
   const [match, setMatch] = useState<Match | null>(null);
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [timeRemainingMs, setTimeRemainingMs] = useState<number>(25000);
-  const [inputsLocked, setInputsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [roundStartAt, setRoundStartAt] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [matchResult, setMatchResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isPlayingAgain, setIsPlayingAgain] = useState(false);
-  const finalizeInFlight = useRef(false);
+  
+  // Phase 0: Refs for forced commitment
+  const roundStartAtRef = useRef<number | null>(null);
   const firstCommitAtRef = useRef<number | null>(null);
+  const committedOptionRef = useRef<number | null>(null);
+  const finalizedRef = useRef(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   const pendingSubmissionRef = useRef<{
     selectedIndex: number;
     responseTimeMs: number;
@@ -146,16 +152,25 @@ export default function MatchPage() {
         const m: Match = { ...data, rounds: normalizedRounds };
         setMatch(m);
         setSubmitError(null);
-        // Derive timer from server state
+        
+        // Phase 0: Initialize round timing
         const serverNow = m.serverNow ?? Date.now();
         const startAt = m.roundStartAt ?? serverNow;
         const duration = m.roundDurationMs ?? 25000;
         const remaining = Math.max(0, startAt + duration - serverNow);
-        setRoundStartAt(startAt);
+        
+        roundStartAtRef.current = startAt;
         setTimeRemainingMs(remaining);
-        setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
         setCurrentRoundIndex(m.currentRoundIndex ?? 0);
+        
+        // Reset round state
+        setSelectedOption(null);
+        setIsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
+        setShowFeedback(false);
         firstCommitAtRef.current = null;
+        committedOptionRef.current = null;
+        finalizedRef.current = false;
+        
         setLoading(false);
       } catch (err) {
         console.error('[MatchPage] ✗ Failed to fetch match:', err);
@@ -187,7 +202,7 @@ export default function MatchPage() {
     setSubmitError(null);
 
     const selectedIndex = payload.selectedIndex;
-    const selectedOption = selectedIndex >= 0 ? round.question?.options?.[selectedIndex] ?? null : null;
+    const selectedOptionValue = selectedIndex >= 0 ? round.question?.options?.[selectedIndex] ?? null : null;
     const correct = selectedIndex >= 0 && selectedIndex === round.correctIndex;
 
     try {
@@ -200,7 +215,7 @@ export default function MatchPage() {
           matchId,
           roundIndex: round.roundIndex,
           questionId: round.questionId,
-          selectedOption,
+          selectedOption: selectedOptionValue,
           correct,
           responseTimeMs: payload.responseTimeMs,
           timeToFirstCommitMs: payload.timeToFirstCommitMs,
@@ -234,7 +249,12 @@ export default function MatchPage() {
       }
 
       const isLastRound = currentRoundIndex === match.rounds.length - 1;
+      
+      // Phase 0: Auto-advance with delay to show feedback
       if (isLastRound) {
+        // Wait briefly then complete match
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        
         const completeRes = await fetch('/api/match/complete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -250,11 +270,16 @@ export default function MatchPage() {
           setIsSubmitting(false);
           return;
         }
-        setMatchResult(completeData);
+        
+        // Navigate to results page with match ID
+        router.push(`/match/${matchId}/results`);
         return;
       }
 
-      // Refetch match to advance
+      // Not last round - auto-advance after brief delay
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // Refetch match to load next round
       const res2 = await fetch(`/api/match/${matchId}?clientId=${clientId}`);
       const fresh = await res2.json();
       if (!res2.ok || fresh?.error) {
@@ -266,67 +291,102 @@ export default function MatchPage() {
       const normalizedRounds = normalizeRounds(fresh.rounds);
       const m: Match = { ...fresh, rounds: normalizedRounds };
       setMatch(m);
-      setCurrentRoundIndex(m.currentRoundIndex ?? currentRoundIndex + 1);
+      
+      const nextRoundIndex = m.currentRoundIndex ?? currentRoundIndex + 1;
+      setCurrentRoundIndex(nextRoundIndex);
+      
       const serverNow = m.serverNow ?? Date.now();
       const startAt = m.roundStartAt ?? serverNow;
       const duration = m.roundDurationMs ?? 25000;
       const remaining = Math.max(0, startAt + duration - serverNow);
-      setRoundStartAt(startAt);
+      
+      roundStartAtRef.current = startAt;
       setTimeRemainingMs(remaining);
-      setInputsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
-      setSelectedAnswer(null);
+      setIsLocked(remaining <= 0 || m.roundStatus === 'timeout' || m.roundStatus === 'ended');
+      
+      // Reset for next round
+      setSelectedOption(null);
+      setShowFeedback(false);
       firstCommitAtRef.current = null;
+      committedOptionRef.current = null;
+      finalizedRef.current = false;
       pendingSubmissionRef.current = null;
     } catch (err) {
       console.error('Failed to submit round:', err);
       setSubmitError('Failed to submit round');
     } finally {
       setIsSubmitting(false);
-      finalizeInFlight.current = false;
     }
-  }, [match, matchId, currentRoundIndex, normalizeRounds]);
+  }, [match, matchId, currentRoundIndex, normalizeRounds, router]);
 
-  const finalizeRound = useCallback((reason: 'manual' | 'timeout') => {
+  const finalizeRound = useCallback((reason: 'commit' | 'timeout') => {
     if (!match || !matchId) return;
-    if (finalizeInFlight.current) return;
+    if (finalizedRef.current) return; // Prevent duplicate finalization
+    
+    finalizedRef.current = true;
 
     const now = Date.now();
-    const startAt = roundStartAt ?? now;
-    const responseTimeMs = Math.max(0, now - startAt);
+    const startAt = roundStartAtRef.current ?? now;
+    const roundDuration = match.roundDurationMs ?? 25000;
+    
+    let responseTimeMs: number;
+    let selectedIndex: number;
+    let timeExpired: boolean;
+
+    if (reason === 'timeout') {
+      // Timer expired
+      selectedIndex = committedOptionRef.current !== null ? committedOptionRef.current : -1;
+      timeExpired = committedOptionRef.current === null;
+      responseTimeMs = committedOptionRef.current !== null 
+        ? Math.max(0, (firstCommitAtRef.current || now) - startAt)
+        : roundDuration;
+    } else {
+      // User committed
+      selectedIndex = committedOptionRef.current !== null ? committedOptionRef.current : -1;
+      timeExpired = false;
+      responseTimeMs = Math.max(0, now - startAt);
+    }
+
     const timeToFirstCommitMs = firstCommitAtRef.current
       ? Math.max(0, firstCommitAtRef.current - startAt)
       : null;
 
-    const selectedIndex = selectedAnswer !== null ? selectedAnswer : -1;
-    const timeExpired = reason === 'timeout';
-
-    if (reason === 'manual' && selectedAnswer === null) return;
-
-    finalizeInFlight.current = true;
     submitRound({
       selectedIndex,
       responseTimeMs,
       timeToFirstCommitMs,
       timeExpired,
     });
-  }, [match, matchId, roundStartAt, selectedAnswer, submitRound]);
+  }, [match, matchId, submitRound]);
 
-  // Server-driven timer with deterministic remaining time
+  // Phase 0: Timer countdown with auto-timeout
   useEffect(() => {
-    if (!match || matchResult || roundStartAt === null) return;
+    if (!match || matchResult || roundStartAtRef.current === null) return;
+    if (finalizedRef.current) return;
 
     const duration = match.roundDurationMs ?? 25000;
-    const tickInterval = setInterval(() => {
-      const remaining = Math.max(0, roundStartAt + duration - Date.now());
+    
+    // Clear any existing timer
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+    }
+    
+    timerIntervalRef.current = setInterval(() => {
+      const remaining = Math.max(0, roundStartAtRef.current! + duration - Date.now());
       setTimeRemainingMs(remaining);
-      if (remaining === 0) {
-        setInputsLocked(true);
+      
+      if (remaining === 0 && !finalizedRef.current) {
+        setIsLocked(true);
         finalizeRound('timeout');
       }
-    }, 250);
+    }, 100);
 
-    return () => clearInterval(tickInterval);
-  }, [match, matchResult, roundStartAt, finalizeRound]);
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [match, matchResult, finalizeRound]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading match...</div>;
@@ -448,36 +508,86 @@ export default function MatchPage() {
 
           {/* Options */}
           <div className="space-y-3">
-            {options.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  if (inputsLocked || isSubmitting) return;
-                  if (!firstCommitAtRef.current) {
-                    firstCommitAtRef.current = Date.now();
-                  }
-                  setSelectedAnswer(index);
-                }}
-                className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
-                  selectedAnswer === index
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-neutral-200 bg-white hover:border-neutral-300'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                      selectedAnswer === index
-                        ? 'border-blue-600 bg-blue-600'
-                        : 'border-neutral-300'
-                    }`}
-                  >
-                    {selectedAnswer === index && <span className="text-white text-sm">✓</span>}
+            {options.map((option, index) => {
+              const isSelected = selectedOption === index;
+              const isCorrect = index === round.correctIndex;
+              const showCorrectness = showFeedback && isLocked;
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    // Phase 0: Forced commitment - instant lock on first click
+                    if (finalizedRef.current || isLocked || isSubmitting) return;
+                    
+                    // Record first commit time
+                    if (!firstCommitAtRef.current) {
+                      firstCommitAtRef.current = Date.now();
+                    }
+                    
+                    // Commit this option
+                    committedOptionRef.current = index;
+                    setSelectedOption(index);
+                    setIsLocked(true);
+                    setShowFeedback(true);
+                    
+                    // Stop the timer
+                    if (timerIntervalRef.current) {
+                      clearInterval(timerIntervalRef.current);
+                      timerIntervalRef.current = null;
+                    }
+                    
+                    // Immediately finalize
+                    finalizeRound('commit');
+                  }}
+                  disabled={isLocked || isSubmitting}
+                  className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
+                    isLocked && showCorrectness
+                      ? isSelected && isCorrect
+                        ? 'border-green-600 bg-green-50'
+                        : isSelected && !isCorrect
+                        ? 'border-red-600 bg-red-50'
+                        : isCorrect
+                        ? 'border-green-400 bg-green-50'
+                        : 'border-neutral-200 bg-white'
+                      : isSelected
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-neutral-200 bg-white hover:border-neutral-300'
+                  } ${isLocked || isSubmitting ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        isLocked && showCorrectness
+                          ? isSelected && isCorrect
+                            ? 'border-green-600 bg-green-600'
+                            : isSelected && !isCorrect
+                            ? 'border-red-600 bg-red-600'
+                            : isCorrect
+                            ? 'border-green-600 bg-green-600'
+                            : 'border-neutral-300'
+                          : isSelected
+                          ? 'border-blue-600 bg-blue-600'
+                          : 'border-neutral-300'
+                      }`}
+                    >
+                      {isLocked && showCorrectness ? (
+                        isSelected && isCorrect ? (
+                          <span className="text-white text-sm">✓</span>
+                        ) : isSelected && !isCorrect ? (
+                          <span className="text-white text-sm">✗</span>
+                        ) : isCorrect ? (
+                          <span className="text-white text-sm">✓</span>
+                        ) : null
+                      ) : isSelected ? (
+                        <span className="text-white text-sm">✓</span>
+                      ) : null}
+                    </div>
+                    <span className="text-neutral-900 font-medium">{option}</span>
                   </div>
-                  <span className="text-neutral-900 font-medium">{option}</span>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
 
           {submitError && (
@@ -487,6 +597,7 @@ export default function MatchPage() {
                 onClick={() => {
                   const pending = pendingSubmissionRef.current;
                   if (pending) {
+                    finalizedRef.current = false;
                     submitRound(pending);
                   }
                 }}
@@ -498,14 +609,26 @@ export default function MatchPage() {
             </div>
           )}
 
-          {/* Submit button */}
-          <Button
-            onClick={() => finalizeRound('manual')}
-            disabled={inputsLocked || selectedAnswer === null || isSubmitting}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-300 text-white font-semibold py-3"
-          >
-            {isSubmitting ? 'Submitting...' : currentRoundIndex === match.rounds.length - 1 ? 'Finish Match' : 'Next Question'}
-          </Button>
+          {/* Phase 0: Show lock status and submitting indicator */}
+          {isLocked && isSubmitting && (
+            <div className="text-center">
+              <p className="text-sm text-neutral-600 animate-pulse">
+                Submitting answer...
+              </p>
+            </div>
+          )}
+          
+          {isLocked && !isSubmitting && !submitError && (
+            <div className="text-center">
+              <p className="text-sm text-neutral-500">
+                {selectedOption !== null 
+                  ? selectedOption === round.correctIndex 
+                    ? '✓ Correct!' 
+                    : '✗ Incorrect'
+                  : '⏱ Time expired'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
