@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/rotate-season",
+      "schedule": "0 0 * * 1"
+    }
+  ]
+}

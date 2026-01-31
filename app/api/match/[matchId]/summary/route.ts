@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { computeMatchMetrics, RoundData } from '@/lib/metrics';
+import { computeUserStats, computeUserLabel } from '@/lib/labels';
 
 export async function GET(
   req: NextRequest,
@@ -19,13 +20,10 @@ export async function GET(
       );
     }
 
-    // Fetch match with rounds and match rounds
+    // Fetch match with rounds from both tables
     const match = await prisma.match.findUnique({
       where: { id: matchId },
       include: {
-        roundLogs: {
-          orderBy: { roundIndex: 'asc' },
-        },
         rounds: {
           orderBy: { roundIndex: 'asc' },
           include: {
@@ -43,11 +41,20 @@ export async function GET(
       );
     }
 
+    // Phase 3: Fetch Round logs (user-specific data)
+    const roundLogs = await prisma.round.findMany({
+      where: {
+        matchId,
+        userId: match.playerAId, // Current user is playerA
+      },
+      orderBy: { roundIndex: 'asc' },
+    });
+
     // Get round duration (default 25s)
     const roundDurationMs = 25000;
 
-    // Extract round data for metrics calculation from roundLogs
-    const roundData: RoundData[] = (match.roundLogs as any[]).map((r) => ({
+    // Extract round data for metrics calculation
+    const roundData: RoundData[] = roundLogs.map((r) => ({
       correct: r.correct,
       responseTimeMs: r.responseTimeMs,
       timeExpired: r.timeExpired,
@@ -58,7 +65,7 @@ export async function GET(
     const metrics = computeMatchMetrics(roundData, roundDurationMs);
 
     // Build round summaries with question details and feedback
-    const roundSummaries = (match.roundLogs as any[]).map((r) => {
+    const roundSummaries = roundLogs.map((r) => {
       const matchRound = (match.rounds as any[]).find(
         (mr: any) => mr.roundIndex === r.roundIndex
       );
@@ -87,14 +94,13 @@ export async function GET(
         correctIndex,
         feedbackTag: r.feedbackTag || null,
         feedbackText: r.feedbackText || null,
+        wasDecidingMistake: r.wasDecidingMistake || false, // Phase 3
       };
     });
 
-    // Calculate scores from matchRounds (gameplay rounds)
-    const playerAScore = (match.rounds as any[]).filter(
-      (mr: any) => mr.playerAAnswer === mr.correctIndex
-    ).length;
-    const playerBScore = (match.rounds as any[]).filter(
+    // Phase 3: Use scoreA/scoreB from Match table
+    const playerAScore = (match as any).scoreA ?? roundLogs.filter(r => r.correct).length;
+    const playerBScore = (match as any).scoreB ?? (match.rounds as any[]).filter(
       (mr: any) => mr.playerBAnswer !== null && mr.playerBAnswer === mr.correctIndex
     ).length;
 
@@ -102,6 +108,36 @@ export async function GET(
     if (playerAScore > playerBScore) winner = 'playerA';
     else if (playerBScore > playerAScore) winner = 'playerB';
     else winner = 'draw';
+
+    // Phase 3: Compute user label from recent matches
+    let userLabel: { label: string; blurb: string; color: string } | null = null;
+    try {
+      const recentMatches = await prisma.match.findMany({
+        where: {
+          playerAId: match.playerAId,
+          status: 'COMPLETED',
+        },
+        orderBy: { endedAt: 'desc' },
+        take: 10,
+      });
+
+      const matchStats = recentMatches.map((m) => {
+        const totalRounds = 10;
+        const accuracy = (m as any).scoreA !== null ? (m as any).scoreA / totalRounds : 0;
+        const efficiency = 0.5; // Placeholder
+        return {
+          accuracy,
+          efficiency,
+          isNearMiss: (m as any).nearMiss || false,
+          result: (m as any).resultA as 'WIN' | 'LOSS' | 'DRAW',
+        };
+      });
+
+      const stats = computeUserStats(matchStats);
+      userLabel = computeUserLabel(stats);
+    } catch (labelError) {
+      console.error(`[match-summary ${requestId}] Failed to compute label:`, labelError);
+    }
 
     return NextResponse.json(
       {
@@ -125,6 +161,13 @@ export async function GET(
         },
         ratingBefore: (match as any).ratingBeforeA,
         ratingAfter: (match as any).ratingAfterA,
+        // Phase 3 fields
+        nearMiss: (match as any).nearMiss || false,
+        scoreA: playerAScore,
+        scoreB: playerBScore,
+        decidedByRoundIndex: (match as any).decidedByRoundIndex ?? null,
+        opponentType: match.isBotMatch ? 'bot' : 'human',
+        userLabel,
         requestId,
       },
       { headers }

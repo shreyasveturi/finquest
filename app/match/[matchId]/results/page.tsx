@@ -18,6 +18,7 @@ interface RoundSummary {
   correctIndex: number;
   feedbackTag?: string | null;
   feedbackText?: string | null;
+  wasDecidingMistake?: boolean; // Phase 3
 }
 
 interface MatchMetrics {
@@ -42,6 +43,17 @@ interface MatchSummary {
   metrics: MatchMetrics;
   ratingBefore: number;
   ratingAfter: number;
+  // Phase 3 fields
+  nearMiss?: boolean;
+  scoreA: number;
+  scoreB?: number;
+  decidedByRoundIndex?: number | null;
+  opponentType?: 'bot' | 'human';
+  userLabel?: {
+    label: string;
+    blurb: string;
+    color: string;
+  } | null;
 }
 
 export default function MatchResultsPage() {
@@ -121,42 +133,50 @@ export default function MatchResultsPage() {
   const isDraw = summary.winner === 'draw';
   const ratingChange = summary.ratingAfter - summary.ratingBefore;
 
-  // Extract feedback for incorrect rounds
-  const incorrectRounds = summary.rounds.filter(r => !r.correct);
-  const feedbackInsights = incorrectRounds
-    .filter(r => r.feedbackText)
-    .map((r, idx) => ({
-      roundIndex: r.roundIndex,
-      feedbackText: r.feedbackText,
-    }));
+  // Phase 3: Find deciding mistake
+  const decidingMistake = summary.decidedByRoundIndex !== null && summary.decidedByRoundIndex !== undefined
+    ? summary.rounds.find(r => r.roundIndex === summary.decidedByRoundIndex)
+    : null;
+
+  const decidingFeedback = decidingMistake?.feedbackText || 'You missed a key constraint under time pressure.';
+
+  // Label color mapping
+  const labelColors: Record<string, string> = {
+    blue: 'bg-blue-50 border-blue-300 text-blue-900',
+    purple: 'bg-purple-50 border-purple-300 text-purple-900',
+    green: 'bg-green-50 border-green-300 text-green-900',
+    gray: 'bg-gray-50 border-gray-300 text-gray-900',
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 py-8 px-6">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-4">
         {/* Header: Win/Loss/Draw */}
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <div className={`text-5xl font-bold mb-4 ${
+        <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+          <div className={`text-4xl font-bold mb-3 ${
             userWon ? 'text-green-600' : isDraw ? 'text-yellow-600' : 'text-red-600'
           }`}>
             {userWon ? '🎉 Victory!' : isDraw ? '⚖️ Draw!' : '😔 Defeat'}
           </div>
           
-          <div className="flex justify-center items-center gap-8 text-2xl font-semibold mb-4">
+          <div className="flex justify-center items-center gap-6 text-xl font-semibold mb-3">
             <div>
-              <p className="text-sm text-neutral-500 mb-1">You</p>
+              <p className="text-xs text-neutral-500 mb-1">You</p>
               <p className="text-neutral-900">{summary.playerAScore}</p>
             </div>
             <div className="text-neutral-400">—</div>
             <div>
-              <p className="text-sm text-neutral-500 mb-1">{summary.isBotMatch ? 'Bot' : 'Opponent'}</p>
+              <p className="text-xs text-neutral-500 mb-1">{summary.isBotMatch ? 'Bot' : 'Opponent'}</p>
               <p className="text-neutral-900">{summary.playerBScore}</p>
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 text-lg">
+          <div className="inline-flex items-center gap-2 text-base">
             <span className="text-neutral-600">Rating:</span>
             <span className="font-bold text-blue-600">{summary.ratingBefore}</span>
-            <span className={`font-semibold ${ratingChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <span className={`font-semibold ${
+              ratingChange >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
               {ratingChange >= 0 ? '+' : ''}{ratingChange}
             </span>
             <span className="text-neutral-400">→</span>
@@ -164,151 +184,69 @@ export default function MatchResultsPage() {
           </div>
         </div>
 
-        {/* Phase 0: Performance Metrics */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-neutral-900 mb-4">⚡ Performance Analysis</h2>
-          
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-neutral-600 mb-1">Accuracy</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {formatAccuracy(summary.metrics.accuracy)}
-              </p>
-            </div>
-            
-            <div className="bg-purple-50 rounded-lg p-4">
-              <p className="text-sm text-neutral-600 mb-1">Avg Response Time</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {formatResponseTime(summary.metrics.avgResponseTimeMs)}
-              </p>
-            </div>
-            
-            <div className="bg-green-50 rounded-lg p-4">
-              <p className="text-sm text-neutral-600 mb-1">Efficiency Score</p>
-              <p className="text-2xl font-bold text-green-600">
-                {formatEfficiency(summary.metrics.matchEfficiencyScore)}
-              </p>
-            </div>
-            
-            <div className="bg-orange-50 rounded-lg p-4">
-              <p className="text-sm text-neutral-600 mb-1">Time Usage</p>
-              <p className="text-2xl font-bold text-orange-600">
-                {formatEfficiency(1 - summary.metrics.avgTimeRemainingRatio)}
-              </p>
-            </div>
+        {/* Phase 3: Near-Miss Banner */}
+        {summary.nearMiss && (
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg p-4 text-center shadow-md">
+            <p className="font-bold text-lg">Lost by 1 question. Run it back.</p>
           </div>
+        )}
 
-          {/* Performance Label */}
+        {/* Phase 3: Identity Label Card */}
+        {summary.userLabel && (
           <div className={`rounded-lg p-4 border-2 ${
-            summary.metrics.label === 'Fast but inaccurate'
-              ? 'bg-orange-50 border-orange-300'
-              : summary.metrics.label === 'Accurate but slow'
-              ? 'bg-blue-50 border-blue-300'
-              : 'bg-green-50 border-green-300'
+            labelColors[summary.userLabel.color] || labelColors.gray
           }`}>
+            <h3 className="font-bold text-lg mb-1">{summary.userLabel.label}</h3>
+            <p className="text-sm">{summary.userLabel.blurb}</p>
+          </div>
+        )}
+
+        {/* Phase 3: Deciding Mistake Callout */}
+        {summary.nearMiss && decidingMistake && (
+          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <div className="text-2xl">
-                {summary.metrics.label === 'Fast but inaccurate' ? '⚡' : 
-                 summary.metrics.label === 'Accurate but slow' ? '🎯' : '⚖️'}
-              </div>
+              <div className="text-2xl">⚠️</div>
               <div>
                 <h3 className="font-bold text-neutral-900 mb-1">
-                  {summary.metrics.label}
+                  Deciding moment: Round {decidingMistake.roundIndex + 1}
                 </h3>
-                <p className="text-sm text-neutral-700">
-                  {summary.metrics.explanation}
-                </p>
+                <p className="text-sm text-neutral-700">{decidingFeedback}</p>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Phase 1: Feedback Without Cognitive Overload */}
-        {incorrectRounds.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-6 border-2 border-green-200">
-            <h2 className="text-xl font-bold text-neutral-900 mb-3">✨ What to improve next time</h2>
-            <p className="text-green-700 font-medium">
-              No feedback needed — accuracy was high.
-            </p>
-          </div>
-        ) : feedbackInsights.length > 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-neutral-900 mb-4">✨ What to improve next time</h2>
-            <div className="space-y-3">
-              {feedbackInsights.map((insight, idx) => (
-                <div key={idx} className="flex gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex-shrink-0 text-lg">💡</div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-neutral-900">
-                      Round {insight.roundIndex + 1}
-                    </p>
-                    <p className="text-sm text-neutral-700 mt-1">
-                      {insight.feedbackText}
-                    </p>
+        {/* Phase 1: Feedback (Compact) */}
+        {summary.rounds.filter(r => !r.correct && r.feedbackText).length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <h2 className="text-lg font-bold text-neutral-900 mb-3">💡 Key Insights</h2>
+            <div className="space-y-2">
+              {summary.rounds
+                .filter(r => !r.correct && r.feedbackText)
+                .slice(0, 3)
+                .map((r, idx) => (
+                  <div key={idx} className="flex gap-2 text-sm">
+                    <span className="text-neutral-500">Round {r.roundIndex + 1}:</span>
+                    <span className="text-neutral-700">{r.feedbackText}</span>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
-        ) : null}
-
-        {/* Round-by-Round Breakdown */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-neutral-900 mb-4">📊 Round Breakdown</h2>
-          
-          <div className="space-y-3">
-            {summary.rounds.map((round) => (
-              <div
-                key={round.roundIndex}
-                className={`flex items-center gap-4 p-3 rounded-lg border ${
-                  round.correct
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-red-50 border-red-200'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                  round.correct ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-                }`}>
-                  {round.correct ? '✓' : '✗'}
-                </div>
-                
-                <div className="flex-1">
-                  <p className="font-semibold text-neutral-900">
-                    Round {round.roundIndex + 1}
-                  </p>
-                  <p className="text-xs text-neutral-600 truncate">
-                    {round.questionPrompt}
-                  </p>
-                </div>
-                
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {formatResponseTime(round.responseTimeMs)}
-                  </p>
-                  {round.timeExpired && (
-                    <p className="text-xs text-red-600">Time expired</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Actions */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 pt-2">
           <Button
             onClick={handlePlayAgain}
             disabled={isPlayingAgain}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg"
           >
             {isPlayingAgain ? 'Starting...' : 'Play Again'}
           </Button>
           
           <Button
             onClick={() => router.push('/leaderboard')}
-            className="w-full"
-            variant="outline"
+            className="w-full bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-900 py-2 rounded-lg"
           >
             View Leaderboard
           </Button>
