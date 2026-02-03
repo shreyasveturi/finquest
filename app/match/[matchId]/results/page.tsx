@@ -185,60 +185,90 @@ export default function MatchResultsPage() {
         </div>
 
         {/* Performance Metrics Card */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-bold text-neutral-900 mb-4">📊 Performance Metrics</h2>
+        <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+          <h2 className="text-lg font-bold text-neutral-900">📊 Match Performance</h2>
           
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          {/* Primary Metrics Grid */}
+          <div className="grid grid-cols-3 gap-3">
             {/* Accuracy */}
-            <div className="text-center">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center border border-blue-200">
               <div className="text-3xl font-bold text-blue-600">
                 {formatAccuracy(summary.metrics.accuracy)}
               </div>
-              <p className="text-xs text-neutral-500 mt-1">Accuracy</p>
+              <p className="text-xs font-semibold text-blue-700 mt-2">Accuracy</p>
+              <p className="text-xs text-blue-600 mt-1">{summary.playerAScore}/{summary.totalRounds} correct</p>
+            </div>
+            
+            {/* Average Response Time */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 text-center border border-purple-200">
+              <div className="text-3xl font-bold text-purple-600">
+                {formatResponseTime(summary.metrics.avgResponseTimeMs)}
+              </div>
+              <p className="text-xs font-semibold text-purple-700 mt-2">Avg Time</p>
+              <p className="text-xs text-purple-600 mt-1">per question</p>
             </div>
             
             {/* Efficiency */}
-            <div className="text-center">
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 text-center border border-green-200">
               <div className="text-3xl font-bold text-green-600">
                 {formatEfficiency(summary.metrics.matchEfficiencyScore)}
               </div>
-              <p className="text-xs text-neutral-500 mt-1">Efficiency</p>
+              <p className="text-xs font-semibold text-green-700 mt-2">Efficiency</p>
+              <p className="text-xs text-green-600 mt-1">overall score</p>
             </div>
-            
-            {/* Right/Wrong */}
-            <div className="text-center">
-              <div className="text-sm font-semibold text-neutral-900">
-                <span className="text-green-600">{summary.playerAScore}</span>
-                <span className="text-neutral-400 mx-1">/</span>
-                <span className="text-red-600">{summary.totalRounds - summary.playerAScore}</span>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-neutral-200"></div>
+
+          {/* Performance Label - Full Width with Color Coding */}
+          <div className={`rounded-lg p-4 border-2 ${
+            summary.metrics.label === 'Accurate but slow' 
+              ? 'bg-blue-50 border-blue-300' 
+              : summary.metrics.label === 'Fast but inaccurate'
+              ? 'bg-orange-50 border-orange-300'
+              : 'bg-green-50 border-green-300'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">
+                {summary.metrics.label === 'Accurate but slow' 
+                  ? '⏱️'
+                  : summary.metrics.label === 'Fast but inaccurate'
+                  ? '⚡'
+                  : '⚖️'}
               </div>
-              <p className="text-xs text-neutral-500 mt-1">Right / Wrong</p>
+              <div className="flex-1">
+                <h3 className={`font-bold text-sm ${
+                  summary.metrics.label === 'Accurate but slow' 
+                    ? 'text-blue-900' 
+                    : summary.metrics.label === 'Fast but inaccurate'
+                    ? 'text-orange-900'
+                    : 'text-green-900'
+                }`}>
+                  {summary.metrics.label}
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  summary.metrics.label === 'Accurate but slow' 
+                    ? 'text-blue-800' 
+                    : summary.metrics.label === 'Fast but inaccurate'
+                    ? 'text-orange-800'
+                    : 'text-green-800'
+                }`}>
+                  {summary.metrics.explanation}
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Secondary Metrics */}
-          <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-neutral-200">
-            {/* Avg Response Time */}
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-neutral-600">Avg Response Time</p>
-              <p className="text-sm font-semibold text-neutral-900">
-                {formatResponseTime(summary.metrics.avgResponseTimeMs)}
-              </p>
+          <div className="bg-neutral-50 rounded-lg p-4 space-y-2">
+            <p className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Additional Metrics</p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-700">Time Remaining Ratio</span>
+                <span className="text-sm font-semibold text-neutral-900">{formatEfficiency(summary.metrics.avgTimeRemainingRatio)}</span>
+              </div>
             </div>
-            
-            {/* Time Usage */}
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-neutral-600">Time Remaining</p>
-              <p className="text-sm font-semibold text-neutral-900">
-                {formatEfficiency(summary.metrics.avgTimeRemainingRatio)}
-              </p>
-            </div>
-          </div>
-
-          {/* Performance Label */}
-          <div className="bg-neutral-50 rounded p-3 border-l-4 border-blue-500">
-            <p className="text-sm font-semibold text-neutral-900">{summary.metrics.label}</p>
-            <p className="text-xs text-neutral-600 mt-1">{summary.metrics.explanation}</p>
           </div>
         </div>
 
@@ -297,16 +327,16 @@ export default function MatchResultsPage() {
           <Button
             onClick={handlePlayAgain}
             disabled={isPlayingAgain}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
           >
             {isPlayingAgain ? 'Starting...' : 'Play Again'}
           </Button>
           
           <Button
             onClick={() => router.push('/leaderboard')}
-            className="w-full bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-900 py-2 rounded-lg"
+            className="w-full bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-3 rounded-lg transition-colors"
           >
-            View Leaderboard
+            🏆 View Leaderboard
           </Button>
         </div>
       </div>
