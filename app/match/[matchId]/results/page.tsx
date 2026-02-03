@@ -184,6 +184,64 @@ export default function MatchResultsPage() {
           </div>
         </div>
 
+        {/* Performance Metrics Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-bold text-neutral-900 mb-4">📊 Performance Metrics</h2>
+          
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            {/* Accuracy */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600">
+                {formatAccuracy(summary.metrics.accuracy)}
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">Accuracy</p>
+            </div>
+            
+            {/* Efficiency */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600">
+                {formatEfficiency(summary.metrics.matchEfficiencyScore)}
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">Efficiency</p>
+            </div>
+            
+            {/* Right/Wrong */}
+            <div className="text-center">
+              <div className="text-sm font-semibold text-neutral-900">
+                <span className="text-green-600">{summary.playerAScore}</span>
+                <span className="text-neutral-400 mx-1">/</span>
+                <span className="text-red-600">{summary.totalRounds - summary.playerAScore}</span>
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">Right / Wrong</p>
+            </div>
+          </div>
+
+          {/* Secondary Metrics */}
+          <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-neutral-200">
+            {/* Avg Response Time */}
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-neutral-600">Avg Response Time</p>
+              <p className="text-sm font-semibold text-neutral-900">
+                {formatResponseTime(summary.metrics.avgResponseTimeMs)}
+              </p>
+            </div>
+            
+            {/* Time Usage */}
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-neutral-600">Time Remaining</p>
+              <p className="text-sm font-semibold text-neutral-900">
+                {formatEfficiency(summary.metrics.avgTimeRemainingRatio)}
+              </p>
+            </div>
+          </div>
+
+          {/* Performance Label */}
+          <div className="bg-neutral-50 rounded p-3 border-l-4 border-blue-500">
+            <p className="text-sm font-semibold text-neutral-900">{summary.metrics.label}</p>
+            <p className="text-xs text-neutral-600 mt-1">{summary.metrics.explanation}</p>
+          </div>
+        </div>
+
         {/* Phase 3: Near-Miss Banner */}
         {summary.nearMiss && (
           <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg p-4 text-center shadow-md">
